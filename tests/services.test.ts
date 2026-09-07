@@ -168,3 +168,20 @@ test("manual probe endpoint enforces role, idempotency and sampling cooldown", a
   assert.equal(list.json().items[0].health.status, "healthy");
   assert.equal(list.json().items[0].health.samplesInWindow, 1);
 });
+
+test("audit query is admin-only, environment-scoped, bounded and read-only", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  const url = '/api/v1/audit?environmentId=local';
+  assert.equal((await ctx.app.inject(url)).statusCode, 401);
+  await ctx.app.inject({ method: 'POST', url: '/api/v1/services', headers: ctx.headers, payload: ctx.payload });
+  ctx.services.create(randomUUID(), 'prod', {name:'hidden',owner:'secret',targetId:'other',intervalSeconds:30}, 'secret-actor', 'secret-request');
+  for (const role of ['viewer','operator'] as const) { ctx.setRole(role); assert.equal((await ctx.app.inject({url,headers:ctx.headers})).statusCode,403); }
+  ctx.setRole('admin');
+  assert.equal((await ctx.app.inject({url:'/api/v1/audit?environmentId=prod',headers:ctx.headers})).statusCode,403);
+  const result = await ctx.app.inject({url: url + '&to=' + (Date.now()+1000),headers:ctx.headers});
+  assert.equal(result.statusCode,200); assert.equal(result.json().total,1);
+  assert.equal(result.json().items[0].operation,'service.created');
+  assert.ok(!result.body.includes('secret')); assert.ok(!result.body.includes('requestId')); assert.ok(!result.body.includes('token'));
+  for (const query of ['&page=0','&category=unknown','&from=10&to=10','&from=0&to=9999999999999','&unexpected=x']) assert.equal((await ctx.app.inject({url:url+query,headers:ctx.headers})).statusCode,400);
+  assert.equal((await ctx.app.inject({method:'DELETE',url:'/api/v1/audit',headers:ctx.headers})).statusCode,404);
+});

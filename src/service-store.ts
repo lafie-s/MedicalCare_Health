@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import type { ProbeResult, ProbeOutcome } from "./probe.js";
 import { AlertStore } from "./alert-store.js";
 import { MaintenanceStore } from "./maintenance-store.js";
+import { AuditStore } from "./audit-store.js";
 
 export interface ServiceInput { name: string; owner: string; targetId: string; intervalSeconds: number }
 export interface Service extends ServiceInput { id: string; environmentId: string; enabled: boolean; version: number; createdAt: number }
@@ -13,6 +14,7 @@ export class ServiceStore {
   private readonly db: DatabaseSync;
   readonly alerts: AlertStore;
   readonly maintenance: MaintenanceStore;
+  readonly auditLog: AuditStore;
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;
@@ -23,6 +25,7 @@ export class ServiceStore {
       CREATE INDEX IF NOT EXISTS probe_history ON probe_runs(service_id, started_at DESC);`);
     this.alerts = new AlertStore(this.db);
     this.maintenance = new MaintenanceStore(this.db);
+    this.auditLog = new AuditStore(this.db);
   }
   private map(row: Record<string, unknown>): Service {
     return { id: String(row.id), environmentId: String(row.environment_id), name: String(row.name), owner: String(row.owner), targetId: String(row.target_id), intervalSeconds: Number(row.interval_seconds), enabled: Boolean(row.enabled), version: Number(row.version), createdAt: Number(row.created_at) };
