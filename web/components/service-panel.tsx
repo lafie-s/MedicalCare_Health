@@ -5,6 +5,7 @@ import { Button, Notice } from "./ui";
 import { Dialog } from "./dialog";
 import { HealthOverview } from "./health-overview";
 import { TrendDialog } from "./probe-trend";
+import { AlertDialog } from "./alert-dialog";
 import { currentHealth, healthReasons as reasons } from "../../src/health-summary";
 
 type Health = { status: string; reason: string; latest: { startedAt: number; httpStatus: number | null; latencyMs: number | null; outcome: string } | null; availabilityPercent: number | null; samplesInWindow: number; asOf: number };
@@ -16,6 +17,7 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [edit, setEdit] = useState<Service | "new" | null>(null);
+  const [alerts, setAlerts] = useState<Service | null>(null);
   const [trend, setTrend] = useState<Service | null>(null);
   const [toggle, setToggle] = useState<Service | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,7 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
   const [now, setNow] = useState(Date.now());
   const probeKeys = useRef(new Map<string, string>());
   const probePending = useRef(false);
-  const modalOpen = useRef(false); modalOpen.current = Boolean(edit || toggle || trend);
+  const modalOpen = useRef(false); modalOpen.current = Boolean(edit || toggle || trend || alerts);
   const active = useRef<AbortController | null>(null);
   const auth = useRef(onUnauthorized); auth.current = onUnauthorized;
   const load = useCallback(async (background = false) => {
@@ -62,9 +64,10 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
     <div className="service-content">{message && <Notice>{message}</Notice>}{!toggle && error && <Notice error>{error}</Notice>}{loading ? <Notice>正在读取服务配置…</Notice> : data && <>
       <HealthOverview items={data.items} now={now} asOf={data.asOf} />
       {role === "admin" && !data.targets.length && <Notice>当前环境没有获准探测的目标，请先由部署管理员配置目标白名单。</Notice>}
-      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id} id={`service-${service.id}`} tabIndex={-1}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div><ProbeInfo service={service} now={now} /><div className="inline-actions service-actions"><Button onClick={() => setTrend(service)}>查看趋势 {service.name}</Button>{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
+      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id} id={`service-${service.id}`} tabIndex={-1}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div><ProbeInfo service={service} now={now} /><div className="inline-actions service-actions"><Button onClick={() => setAlerts(service)}>查看告警 {service.name}</Button><Button onClick={() => setTrend(service)}>查看趋势 {service.name}</Button>{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
       <p className="muted service-count">共 {data.items.length} 个服务 · 每环境上限 {data.limit} 个</p>
     </>}</div>
+    {alerts && <AlertDialog service={alerts} role={role} onClose={() => setAlerts(null)} onUnauthorized={() => auth.current()} />}
     {trend && <TrendDialog service={trend} onClose={() => setTrend(null)} onUnauthorized={() => auth.current()} />}
     {edit && data && <ServiceForm key={edit === "new" ? "new" : edit.id} service={edit === "new" ? null : edit} targets={data.targets} environmentId={environmentId} onClose={() => setEdit(null)} onUnauthorized={() => auth.current()} onSaved={() => { setEdit(null); setMessage("服务配置已保存。"); void load(); }} />}
     {toggle && <Dialog title={`${toggle.enabled ? "停用" : "启用"} ${toggle.name}`} onCancel={() => { if (!busy) setToggle(null); }}><p>{toggle.enabled ? "停用后不再采集该服务的运行指标，已有记录会保留。" : "启用后将按配置恢复采集。"}</p>{error && <Notice error>{error}</Notice>}<div className="dialog-actions"><Button autoFocus disabled={busy} onClick={() => setToggle(null)}>取消</Button><Button className="primary" busy={busy} onClick={() => void changeState()}>{toggle.enabled ? "确认停用" : "确认启用"}</Button></div></Dialog>}

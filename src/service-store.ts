@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import type { ProbeResult, ProbeOutcome } from "./probe.js";
+import { AlertStore } from "./alert-store.js";
 
 export interface ServiceInput { name: string; owner: string; targetId: string; intervalSeconds: number }
 export interface Service extends ServiceInput { id: string; environmentId: string; enabled: boolean; version: number; createdAt: number }
@@ -9,6 +10,7 @@ export interface ProbeRecord { id: string; serviceId: string; serviceVersion: nu
 
 export class ServiceStore {
   private readonly db: DatabaseSync;
+  readonly alerts: AlertStore;
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;
@@ -17,6 +19,7 @@ export class ServiceStore {
       CREATE TABLE IF NOT EXISTS probe_runs (id TEXT PRIMARY KEY, service_id TEXT NOT NULL, service_version INTEGER NOT NULL, target_fingerprint TEXT NOT NULL, started_at INTEGER NOT NULL, finished_at INTEGER, outcome TEXT NOT NULL, http_status INTEGER, latency_ms REAL, actor TEXT NOT NULL);
       CREATE UNIQUE INDEX IF NOT EXISTS one_active_probe ON probe_runs(service_id) WHERE outcome = 'running';
       CREATE INDEX IF NOT EXISTS probe_history ON probe_runs(service_id, started_at DESC);`);
+    this.alerts = new AlertStore(this.db);
   }
   private map(row: Record<string, unknown>): Service {
     return { id: String(row.id), environmentId: String(row.environment_id), name: String(row.name), owner: String(row.owner), targetId: String(row.target_id), intervalSeconds: Number(row.interval_seconds), enabled: Boolean(row.enabled), version: Number(row.version), createdAt: Number(row.created_at) };
@@ -50,6 +53,7 @@ export class ServiceStore {
       if (this.db.prepare("SELECT id FROM services WHERE environment_id = (SELECT environment_id FROM services WHERE id = ?) AND target_id = ? AND id != ?").get(id, input.targetId, id)) throw new ServiceConflict();
       const changed = this.db.prepare("UPDATE services SET name = ?, owner = ?, target_id = ?, interval_seconds = ?, enabled = ?, version = version + 1 WHERE id = ? AND version = ?").run(input.name, input.owner, input.targetId, input.intervalSeconds, Number(input.enabled), id, version);
       if (!changed.changes) throw new ServiceConflict();
+      this.alerts.invalidate(id, input.enabled ? "service_changed" : "service_disabled", requestId);
       this.audit(actor, `service.updated:${id}:v${version + 1}:${input.enabled ? "enabled" : "disabled"}`, requestId);
       return this.get(id)!;
     });
@@ -68,6 +72,7 @@ export class ServiceStore {
       if (expired) {
         this.db.prepare("UPDATE probe_runs SET outcome = 'interrupted', finished_at = ? WHERE id = ?").run(now, String(expired.id));
         this.audit("system:collector", `probe.finished:${String(expired.id)}:interrupted`, requestId);
+        this.alerts.sample(service, this.getProbe(String(expired.id))!, now);
       }
       if (!this.probeDue(service, now) || this.db.prepare("SELECT id FROM probe_runs WHERE service_id = ? AND outcome = 'running'").get(service.id)) return false;
       const inserted = this.db.prepare("INSERT OR IGNORE INTO probe_runs VALUES (?, ?, ?, ?, ?, NULL, 'running', NULL, NULL, ?)").run(id, service.id, service.version, fingerprint, now, actor);
@@ -79,7 +84,11 @@ export class ServiceStore {
   finishProbe(id: string, result: ProbeResult, now = Date.now()) {
     this.transaction(() => {
       const changed = this.db.prepare("UPDATE probe_runs SET outcome = ?, http_status = ?, latency_ms = ?, finished_at = ? WHERE id = ? AND outcome = 'running'").run(result.outcome, result.httpStatus, result.latencyMs, now, id);
-      if (changed.changes) this.audit("system:collector", `probe.finished:${id}:${result.outcome}`, id);
+      if (changed.changes) {
+        this.audit("system:collector", `probe.finished:${id}:${result.outcome}`, id);
+        const sample = this.getProbe(id)!; const service = this.get(sample.serviceId);
+        if (service) this.alerts.sample(service, sample, now);
+      }
     });
   }
   probeStats(service: Service, fingerprint: string, now: number) {

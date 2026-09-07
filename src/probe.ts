@@ -76,6 +76,12 @@ export class ProbeRunner {
     if (this.stopped) return;
     const policy = await this.policy();
     this.store.pruneProbes();
+    const monitored = new Map<string, string>();
+    for (const environment of policy.environments) for (const service of this.store.list(environment.id)) {
+      const target = (policy.probeTargets ?? []).find((target) => target.id === service.targetId && target.environmentId === environment.id);
+      if (service.enabled && target) monitored.set(service.id, targetFingerprint(target));
+    }
+    this.store.alerts.reconcile(monitored);
     const due = policy.environments.flatMap((environment) => this.store.list(environment.id))
       .filter((service) => service.enabled && (policy.probeTargets ?? []).some((target) => target.id === service.targetId && target.environmentId === service.environmentId) && this.store.probeDue(service))
       .sort((a, b) => this.store.lastProbeStart(a.id) - this.store.lastProbeStart(b.id)).slice(0, 4);

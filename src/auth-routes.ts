@@ -8,6 +8,7 @@ import type { SessionStore } from "./session-store.js";
 import { z } from "zod";
 import type { ServiceStore } from "./service-store.js";
 import { registerServiceRoutes } from "./service-routes.js";
+import { registerAlertRoutes } from "./alert-routes.js";
 import type { ProbeRunner } from "./probe.js";
 
 export interface AuthDependencies {
@@ -113,6 +114,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
     return { userId: context.principal.userId, displayName: context.principal.displayName, role: context.grant.role, environmentIds: context.grant.environmentIds, expiresAt: new Date(context.expiresAt).toISOString() };
   });
   if (deps.services) await registerServiceRoutes(app, deps.services, authorize, deps.probeRunner);
+  if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
   app.get("/api/v1/environments", async (request, reply) => {
     const context = await authorize(request, reply);
     if (!context) return;

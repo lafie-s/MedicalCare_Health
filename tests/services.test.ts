@@ -52,6 +52,35 @@ test("trend query enforces authorization and bounded ranges for read-only users"
   ctx.policy.probeTargets = [];
   assert.equal((await ctx.app.inject({ url, headers: ctx.headers })).json().targetAvailable, false);
 });
+
+test("alert routes authorize rule writes and event actions independently", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  const base = `/api/v1/services/${ctx.payload.idempotencyKey}`;
+  const payload = { failureCount: 2, recoveryCount: 2, severity: "warning", enabled: true, version: 0 };
+  assert.equal((await ctx.app.inject(`${base}/alerts`)).statusCode, 401);
+  const save = () => ctx.app.inject({ method: "PUT", url: `${base}/alert-rule`, headers: ctx.headers, payload });
+  ctx.setRole("viewer"); assert.equal((await save()).statusCode, 403);
+  assert.equal((await ctx.app.inject({ url: `${base}/alerts`, headers: ctx.headers })).statusCode, 200);
+  assert.equal((await ctx.app.inject({ method: "POST", url: `/api/v1/alerts/${randomUUID()}/acknowledge`, headers: ctx.headers })).statusCode, 403);
+  ctx.setRole("admin"); assert.equal((await save()).statusCode, 200); assert.equal((await save()).statusCode, 409);
+  assert.equal((await ctx.app.inject({ method: "PUT", url: `${base}/alert-rule`, headers: ctx.headers, payload: { ...payload, version: 1, failureCount: 0 } })).statusCode, 400);
+  const other = ctx.services.create(randomUUID(), "prod", { name: "secret", owner: "ops", targetId: "prod", intervalSeconds: 30 }, "ops", "test");
+  assert.equal((await ctx.app.inject({ url: `/api/v1/services/${other.id}/alerts`, headers: ctx.headers })).statusCode, 404);
+  assert.equal((await ctx.app.inject({ url: `${base}/alerts?page=-1`, headers: ctx.headers })).statusCode, 400);
+  const service = ctx.services.get(ctx.payload.idempotencyKey)!;
+  const start = Date.now() + 1000;
+  for (let i = 0; i < 2; i++) {
+    const id = randomUUID(); const time = start + i * 30_000;
+    ctx.services.claimProbe(service, id, "fixture", "ops", "test", time);
+    ctx.services.finishProbe(id, { outcome: "timeout", latencyMs: null, httpStatus: null }, time + 1);
+  }
+  const event = ctx.services.alerts.list(service.id, 1).items[0]!;
+  ctx.setRole("operator");
+  assert.equal((await ctx.app.inject({ method: "POST", url: `/api/v1/alerts/${event.id}/close`, headers: ctx.headers })).statusCode, 409);
+  const acknowledge = () => ctx.app.inject({ method: "POST", url: `/api/v1/alerts/${event.id}/acknowledge`, headers: ctx.headers });
+  assert.equal((await acknowledge()).statusCode, 200); assert.equal((await acknowledge()).statusCode, 200);
+});
 test("service directory enforces environment scope and admin-only writes", async (t) => {
   const ctx = setup(); t.after(ctx.close);
   assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);
