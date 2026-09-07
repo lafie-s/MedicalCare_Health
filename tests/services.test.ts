@@ -5,13 +5,15 @@ import { buildApp } from "../src/app.js";
 import { parseAccessPolicy, type AccessPolicy, type Grant } from "../src/access-policy.js";
 import { SessionStore } from "../src/session-store.js";
 import { ServiceStore } from "../src/service-store.js";
+import { ProbeRunner } from "../src/probe.js";
 
 function setup() {
   const sessions = new SessionStore(":memory:", randomBytes(32));
   const services = new ServiceStore(":memory:");
   let role: Grant["role"] = "admin";
   const policy: AccessPolicy = { environments: [{ id: "local", name: "本地", type: "development" }, { id: "prod", name: "生产", type: "production" }], grants: [], probeTargets: [{ id: "health", environmentId: "local", name: "就绪接口", url: "http://127.0.0.1:9999/health/ready", address: "127.0.0.1" }] };
-  const app = buildApp({ store: sessions, services, identity: { verify: async () => ({ userId: "ops", displayName: "运维", role: "ADMIN" }), ready: async () => true }, policy: async () => ({ ...policy, grants: [{ userId: "ops", role, environmentIds: ["local"] }] }), origin: "http://127.0.0.1:4320", secureCookie: false });
+  const runner = new ProbeRunner(services, async () => policy, async () => ({ outcome: "success", httpStatus: 200, latencyMs: 2 }));
+  const app = buildApp({ store: sessions, services, probeRunner: runner, identity: { verify: async () => ({ userId: "ops", displayName: "运维", role: "ADMIN" }), ready: async () => true }, policy: async () => ({ ...policy, grants: [{ userId: "ops", role, environmentIds: ["local"] }] }), origin: "http://127.0.0.1:4320", secureCookie: false });
   const session = sessions.create("ops", "token", "test");
   const headers = { origin: "http://127.0.0.1:4320", cookie: `mc_health_session=${session.id}` };
   const payload = { idempotencyKey: randomUUID(), environmentId: "local", name: "聊天服务", owner: "运维组", targetId: "health", intervalSeconds: 30 };
@@ -57,4 +59,21 @@ test("probe policy rejects credentials, unbound IPs and cross-environment target
   for (const change of [{ url: "file:///etc/passwd" }, { url: "https://user:secret@health.example/" }, { url: "http://127.0.0.2/" }, { address: "health.example" }, { environmentId: "prod" }, { url: "https://health.example/?token=secret" }]) {
     assert.throws(() => parseAccessPolicy({ ...policy, probeTargets: [{ ...policy.probeTargets[0], ...change }] }));
   }
+});
+
+test("manual probe endpoint enforces role, idempotency and sampling cooldown", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  const url = `/api/v1/services/${ctx.payload.idempotencyKey}/probe`;
+  const key = randomUUID(); const request = () => ctx.app.inject({ method: "POST", url, headers: { ...ctx.headers, "idempotency-key": key } });
+  ctx.setRole("viewer"); assert.equal((await request()).statusCode, 403);
+  ctx.setRole("operator");
+  assert.equal((await ctx.app.inject({ method: "POST", url, headers: ctx.headers })).statusCode, 400);
+  const result = await request(); assert.equal(result.statusCode, 200); assert.equal(result.json().outcome, "success");
+  assert.equal((await request()).json().id, result.json().id);
+  assert.equal((await ctx.app.inject({ method: "POST", url, headers: { ...ctx.headers, "idempotency-key": randomUUID() } })).statusCode, 409);
+  assert.equal((await ctx.app.inject({ method: "POST", url: `/api/v1/services/${randomUUID()}/probe`, headers: { ...ctx.headers, "idempotency-key": randomUUID() } })).statusCode, 404);
+  const list = await ctx.app.inject({ url: "/api/v1/services?environmentId=local", headers: ctx.headers });
+  assert.equal(list.json().items[0].health.status, "healthy");
+  assert.equal(list.json().items[0].health.samplesInWindow, 1);
 });

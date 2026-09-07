@@ -70,7 +70,7 @@ npm run dev
 
 在第二个终端执行 `npm ci --prefix web`、`npm run dev:web`，访问 `http://127.0.0.1:4320`。`HEALTH_API_ORIGIN` 默认 `http://127.0.0.1:4310`，只在 Next.js 服务端用于代理；更改该变量后重新构建前端。生产前端使用 `npm run build:web` 和 `npm run start --prefix web`，外部 TLS 由部署入口提供。
 
-前端仅显示实际授权环境；无采集源时显示“当前状态：未知”。身份查询失败会隐藏原先受保护内容，401/403 返回登录，503 提供重试。首次未配置后端时显示配置错误，不启用默认账号。
+前端仅显示实际授权环境；服务无采样或数据过期时显示未知。管理员配置服务后自动执行 HTTP 探测，管理员及运维人员也可手动触发；白名单、采样口径及存储限制见 `docs/service-monitoring.md`。身份查询失败会隐藏原先受保护内容，401/403 返回登录，503 提供重试。首次未配置后端时显示配置错误，不启用默认账号。
 
 执行 `npm run check:web` 验证设计令牌、前端构建与类型。设计规范为 `DESIGN.md`，运行令牌由 `npm run tokens` 生成。浏览器验证记录见 `docs/ui-verification.md`。
 

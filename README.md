@@ -12,7 +12,7 @@
 
 ## 当前状态
 
-已实现后端基础、员工账号登录页面、可撤销的平台会话及授权环境工作台。前端为 Next.js / React，后端为 Fastify / TypeScript，与 MedicalCareWeb 对齐。真实员工联调、监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
+已实现后端基础、员工登录与环境授权、服务目录配置，以及自动和手动 HTTP 健康探测。服务列表展示响应耗时、5 分钟探测成功率、采集时间及过期状态。前端为 Next.js / React，后端为 Fastify / TypeScript，与 MedicalCareWeb 对齐。当前通过隔离身份和本机 HTTP 验证，真实员工、运行环境和生产环境尚未联调。详见 [实施记录](docs/implementation-log.md)。
 
 ## 本地启动
 

@@ -8,6 +8,7 @@ import type { SessionStore } from "./session-store.js";
 import { z } from "zod";
 import type { ServiceStore } from "./service-store.js";
 import { registerServiceRoutes } from "./service-routes.js";
+import type { ProbeRunner } from "./probe.js";
 
 export interface AuthDependencies {
   identity: IdentityProvider;
@@ -16,6 +17,7 @@ export interface AuthDependencies {
   origin: string;
   secureCookie: boolean;
   services?: ServiceStore;
+  probeRunner?: ProbeRunner;
 }
 const COOKIE = "mc_health_session";
 
@@ -110,7 +112,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
     if (!context) return;
     return { userId: context.principal.userId, displayName: context.principal.displayName, role: context.grant.role, environmentIds: context.grant.environmentIds, expiresAt: new Date(context.expiresAt).toISOString() };
   });
-  if (deps.services) await registerServiceRoutes(app, deps.services, authorize);
+  if (deps.services) await registerServiceRoutes(app, deps.services, authorize, deps.probeRunner);
   app.get("/api/v1/environments", async (request, reply) => {
     const context = await authorize(request, reply);
     if (!context) return;
