@@ -3,7 +3,8 @@
   "sourceRoots": ["web/app", "web/components"],
   "locale": "zh-CN",
   "canonicalMap": "UX-CONTRACT.md",
-  "requiredCapabilities": ["Form", "Scrollbar"],
+  "requiredCapabilities": ["Form", "Scrollbar", "Select/Listbox"],
+  "ownership": { "Select/Listbox": "native" },
   "requiredCommands": ["typecheck", "tokens"],
   "commands": { "typecheck": "npm run typecheck --prefix web", "tokens": "npm run tokens:check" }
 }

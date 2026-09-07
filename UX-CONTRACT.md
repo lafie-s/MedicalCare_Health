@@ -4,7 +4,9 @@
 
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 | --- | --- | --- | --- | --- |
-| Form | web/components/login-form.tsx | 员工登录 API | credentials | 浏览器必填与失败路径 |
+| Form | web/components/login-form.tsx、web/components/service-panel.tsx | 登录与服务配置 API | credentials / service | 浏览器必填与失败路径 |
+| Select/Listbox | web/components/service-panel.tsx | DESIGN.md | native | 原生弹层及键盘选择 |
+| Dialog | web/components/dialog.tsx | 当前约定 | form / confirmation | 焦点、Escape 和放弃修改 |
 | Scrollbar | web/app/globals.css | DESIGN.md | 全局标准与引擎回退 | 浏览器计算样式 |
 | Feedback | web/components/ui.tsx | 当前约定 | error / status | 浏览器 live region |
 
@@ -15,5 +17,9 @@
 环境 ID 存入 URL 的 environment 参数，仅接收授权集合中的值；不使用敏感信息作为 URL 状态。环境最多 100 个，采用完整列表，不需要分页或搜索。空列表明确提示联系管理员；未接入运行数据不显示模拟数字。
 
 当前不提供有副作用的维护功能。退出为可重新登录的普通操作，无需确认；失败必须显示重试，不声称会话已撤销。
+
+服务目录：仅管理员新增、修改、启停，其他角色只读。原生 select 用于白名单目标与采集间隔，接受系统弹层外观，不自定义 popup 几何。列表最多 100 项，与后端硬上限一致，完整渲染并显示总数。创建和修改成功关闭对话框、刷新当前环境列表、显示保存结果；失败保留输入，409 要求刷新后重新打开配置。
+
+服务启停会改变监测覆盖，使用同一 Dialog 确认并说明历史保留；停用不删除数据。表单取消与 Escape 在有修改时先询问是否放弃，关闭页面使用原生 beforeunload 生命周期提示。对话框开启时暂停页面可见性触发的全页刷新，服务端仍逐请求鉴权。会话到期按安全规则清除表单，不持久化未保存配置。
 
 默认 zh-CN 与 Asia/Shanghai，技术品牌名保持原名；日期使用 Intl。界面目标 WCAG 2.2 AA，首错焦点、按钮键盘操作、loading live region、窄屏和减少动画状态必须验证。登录表单无额外导航，密码不可恢复，不做持久化草稿。

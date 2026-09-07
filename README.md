@@ -8,6 +8,7 @@
 - [开发计划与甘特图](docs/project-plan.md)：阶段依赖、暂定排期、交付与验收。
 - [工程协作规则](AGENTS.md)：功能完成标准、Git 提交及推送要求。
 - [本地开发与身份接入](docs/local-development.md)：运行配置、授权、接口和当前限制。
+- [服务目录与探测接入](docs/service-monitoring.md)：服务配置、目标白名单和接入边界。
 
 ## 当前状态
 

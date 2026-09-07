@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { randomBytes, randomUUID } from "node:crypto";
+import test from "node:test";
+import { buildApp } from "../src/app.js";
+import { parseAccessPolicy, type AccessPolicy, type Grant } from "../src/access-policy.js";
+import { SessionStore } from "../src/session-store.js";
+import { ServiceStore } from "../src/service-store.js";
+
+function setup() {
+  const sessions = new SessionStore(":memory:", randomBytes(32));
+  const services = new ServiceStore(":memory:");
+  let role: Grant["role"] = "admin";
+  const policy: AccessPolicy = { environments: [{ id: "local", name: "本地", type: "development" }, { id: "prod", name: "生产", type: "production" }], grants: [], probeTargets: [{ id: "health", environmentId: "local", name: "就绪接口", url: "http://127.0.0.1:9999/health/ready", address: "127.0.0.1" }] };
+  const app = buildApp({ store: sessions, services, identity: { verify: async () => ({ userId: "ops", displayName: "运维", role: "ADMIN" }), ready: async () => true }, policy: async () => ({ ...policy, grants: [{ userId: "ops", role, environmentIds: ["local"] }] }), origin: "http://127.0.0.1:4320", secureCookie: false });
+  const session = sessions.create("ops", "token", "test");
+  const headers = { origin: "http://127.0.0.1:4320", cookie: `mc_health_session=${session.id}` };
+  const payload = { idempotencyKey: randomUUID(), environmentId: "local", name: "聊天服务", owner: "运维组", targetId: "health", intervalSeconds: 30 };
+  return { app, services, headers, payload, policy, setRole: (value: Grant["role"]) => { role = value; }, close: async () => { await app.close(); services.close(); sessions.close(); } };
+}
+test("service directory enforces environment scope and admin-only writes", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);
+  assert.equal((await ctx.app.inject({ url: "/api/v1/services?environmentId=prod", headers: ctx.headers })).statusCode, 403);
+  ctx.setRole("operator");
+  assert.equal((await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload })).statusCode, 403);
+  const list = await ctx.app.inject({ url: "/api/v1/services?environmentId=local", headers: ctx.headers });
+  assert.deepEqual(list.json().items, []);
+  assert.deepEqual(list.json().targets, [{ id: "health", name: "就绪接口" }]);
+  assert.ok(!list.body.includes("127.0.0.1:9999"));
+});
+test("service create is idempotent, validates allowlist and rejects duplicates", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  const create = (payload = ctx.payload) => ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload });
+  assert.equal((await create({ ...ctx.payload, targetId: "arbitrary-url" })).statusCode, 400);
+  assert.equal((await create({ ...ctx.payload, intervalSeconds: 1 })).statusCode, 400);
+  assert.equal((await create()).statusCode, 201);
+  assert.equal((await create()).statusCode, 201);
+  assert.equal(ctx.services.list("local").length, 1);
+  assert.equal((await create({ ...ctx.payload, idempotencyKey: randomUUID() })).statusCode, 409);
+});
+test("service edits require current version; revoked targets can still be disabled", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  const url = `/api/v1/services/${ctx.payload.idempotencyKey}`;
+  const patch = (payload: object) => ctx.app.inject({ method: "PATCH", url, headers: ctx.headers, payload });
+  assert.equal((await patch({ version: 1, owner: "新负责人" })).statusCode, 200);
+  assert.equal((await patch({ version: 1, enabled: false })).statusCode, 409);
+  ctx.policy.probeTargets = [];
+  assert.equal((await patch({ version: 2, enabled: false })).statusCode, 200);
+  assert.equal((await patch({ version: 3, enabled: true })).statusCode, 400);
+  ctx.setRole("viewer");
+  assert.equal((await patch({ version: 3, name: "越权修改" })).statusCode, 403);
+});
+test("probe policy rejects credentials, unbound IPs and cross-environment targets", () => {
+  const policy = { environments: [{ id: "local", name: "开发", type: "development" }], grants: [], probeTargets: [{ id: "health", environmentId: "local", name: "目标", url: "https://health.example/health", address: "127.0.0.1" }] };
+  assert.ok(parseAccessPolicy(policy));
+  for (const change of [{ url: "file:///etc/passwd" }, { url: "https://user:secret@health.example/" }, { url: "http://127.0.0.2/" }, { address: "health.example" }, { environmentId: "prod" }, { url: "https://health.example/?token=secret" }]) {
+    assert.throws(() => parseAccessPolicy({ ...policy, probeTargets: [{ ...policy.probeTargets[0], ...change }] }));
+  }
+});

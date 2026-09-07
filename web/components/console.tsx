@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { LoginForm } from "./login-form";
 import { Brand, Button, Notice } from "./ui";
+import { ServicePanel } from "./service-panel";
 
 type User = { displayName: string; role: "viewer" | "operator" | "admin"; expiresAt: string };
 type Environment = { id: string; name: string; type: "development" | "staging" | "production" };
@@ -40,7 +41,7 @@ export function Console() {
   useEffect(() => {
     document.title = `${state.kind === "login" ? "员工登录" : state.kind === "error" ? "连接异常" : "运维工作台"} · MedicalCare Health`;
     if (state.kind !== "ready") return;
-    const refresh = () => { if (document.visibilityState === "visible") void load(); };
+    const refresh = () => { if (document.visibilityState === "visible" && !document.querySelector("dialog[open]")) void load(); };
     const timer = setTimeout(() => { active.current?.abort(); setState({ kind: "login", message: "会话已到期，请重新登录" }); }, Math.max(0, Date.parse(state.user.expiresAt) - Date.now()));
     document.addEventListener("visibilitychange", refresh);
     return () => { clearTimeout(timer); document.removeEventListener("visibilitychange", refresh); };
@@ -61,6 +62,7 @@ export function Console() {
       <div className="workspace-content"><div className="page-heading"><div><p className="eyebrow">工作空间</p><h1>选择运维环境</h1><p className="muted">仅展示你获准访问的环境。进入前请核对环境类型。</p></div><Button onClick={() => void load()}>刷新环境</Button></div>{error && <Notice error>{error}</Notice>}
         {state.environments.length === 0 ? <Notice>暂无可访问环境，请联系管理员配置环境权限。</Notice> : <div className="environment-workspace"><section className="environment-list" aria-label="授权环境"><div className="panel-heading">可访问环境 <span>{state.environments.length}</span></div><ul>{state.environments.map((item) => <li key={item.id}><button className={`environment-option ${selected === item.id ? "selected" : ""}`} aria-pressed={selected === item.id} onClick={() => { setSelected(item.id); const url = new URL(location.href); url.searchParams.set("environment", item.id); history.replaceState(null, "", url); }}><span className="environment-icon" aria-hidden="true">▤</span><span><strong>{item.name}</strong><small>{types[item.type]}</small></span><span aria-hidden="true">→</span></button></li>)}</ul></section>
           <section className="environment-detail" aria-labelledby="environment-title"><div className="panel-heading"><span>当前环境</span><span className="badge">{environment && types[environment.type]}</span></div><h2 id="environment-title">{environment?.name}</h2><p className="technical-id">{environment?.id}</p><div className="empty-monitor"><span className="monitor-symbol" aria-hidden="true">⌁</span><h3>尚未接入运行数据</h3><p>该环境的服务与采集源尚未接入。<br />接入后可在这里查看服务健康状态。</p><span className="unknown-label">当前状态：未知</span></div><p className="detail-note">无采集数据时，不作正常或异常判断。</p></section></div>}
+        {environment && <ServicePanel key={environment.id} environmentId={environment.id} role={state.user.role} onUnauthorized={() => { active.current?.abort(); setState({ kind: "login", message: "会话或权限已失效，请重新登录" }); }} />}
       </div><footer className="workspace-footer">MedicalCare Health <span>所有时间均以北京时间显示</span></footer>
     </main></div>;
 }

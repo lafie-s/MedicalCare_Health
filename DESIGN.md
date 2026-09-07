@@ -70,7 +70,9 @@ sm 用于按钮和输入，md 用于内容面板，环境列表为整行选择�
 
 全局滚动条由 globals.css 控制：border 为 thumb，background 为 track，muted 为 hover，primary 为 active。页面可自然滚动，禁止隐藏滚动条。交互有 hover、focus-visible、active、disabled；动效仅用于颜色过渡，reduced-motion 关闭。
 
-环境数据以最多 100 项的授权列表完整显示（API 配置上限），选择保存到 URL 的 environment 参数；无权限时清除失效选择。当前没有选择弹层、日期输入、表格、删除操作或 toast。
+环境数据以最多 100 项的授权列表完整显示（API 配置上限），选择保存到 URL 的 environment 参数；无权限时清除失效选择。服务目录也有每环境 100 项硬上限，按纵向列表展示。当前没有日期输入、表格、删除操作或 toast。
+
+服务表单的目标与间隔使用原生 select，接受系统提供的弹层样式和键盘交互；表面边框、字色、焦点与 input 一致。共享 Dialog 使用原生 dialog 模态能力，宽度不超过 520px、距离视口边缘至少 16px、内容可滚动；暗色遮罩仅服务于模态层级。保存按钮与错误反馈复用 Button、Notice。
 
 ## Do's and Don'ts
 

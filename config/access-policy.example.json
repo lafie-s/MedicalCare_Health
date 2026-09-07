@@ -2,5 +2,6 @@
   "environments": [
     { "id": "local", "name": "本地开发", "type": "development" }
   ],
-  "grants": []
+  "grants": [],
+  "probeTargets": []
 }
