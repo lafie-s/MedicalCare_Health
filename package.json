@@ -1,0 +1,21 @@
+{
+  "name": "medicalcare-health",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": { "fastify": "5.12.1" },
+  "devDependencies": {
+    "@types/node": "24.0.0",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3"
+  }
+}

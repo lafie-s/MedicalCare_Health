@@ -40,10 +40,10 @@ F07 初始仅支持记录型维护及探测重试。服务重启、缓存刷新�
 
 ## 4. 建议技术架构
 
-当前尚无应用代码。以下为候选方案，不代表 MedicalCareWeb 已采用这些组件，也不锁定版本；调研后记录最终选型及兼容性。
+已只读核实本机 `F:\MedicalCareWeb` 的代码和依赖：主站使用 Next.js / React，chat-service 使用 Fastify / TypeScript，并已有员工身份与健康探测接口。后端工程已开始实现，其余部署方案继续调研。
 
-- 前端：TypeScript + Vue 3 + Vite，使用统一组件库和图表库完成运维界面。
-- 后端：若 MedicalCareWeb 采用 .NET，优先 ASP.NET Core Web API；若已有其他成熟后端栈，优先保持一致。
+- 前端：采用 TypeScript + Next.js / React，与 MedicalCareWeb 保持一致；尚未实现。
+- 后端：采用 Fastify 5 + TypeScript，版本与现有 chat-service 对齐，独立运行于默认 4310 端口。
 - 配置及业务数据：优先复用现有关系数据库；无既有约束时评估 PostgreSQL。
 - 时序指标：已有 Prometheus 时复用其查询接口；没有现成监控时先实现受限规模的探测采集，并按容量评估时序存储。
 - 后台任务：独立 Worker 负责采集、规则评估与通知；多实例部署需要任务租约或等价互斥措施。

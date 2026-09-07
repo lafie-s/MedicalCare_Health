@@ -10,7 +10,19 @@
 
 ## 当前状态
 
-当前处于需求与技术规划阶段，尚未实现应用或接入 MedicalCareWeb。文档中的技术选型为建议方案，部署条件、现有接口和业务指标需在接入调研阶段核实。
+已开始后端实现，采用与本机 MedicalCareWeb chat-service 一致的 Fastify / TypeScript 技术栈。实际监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
+
+## 本地启动
+
+需要 Node.js 22.13 或更高版本。
+
+```powershell
+npm ci
+npm run check
+npm run dev
+```
+
+默认监听 `http://127.0.0.1:4310`。`GET /health/live` 检查进程存活；未完成配置时 `GET /health/ready` 返回 503。发布构建使用 `npm run build`，启动构建产物使用 `npm start`。
 
 已确认：本项目中的“健康指标”指 MedicalCareWeb 系统运行指标，包括服务可用性、接口延迟与错误率、资源使用情况及依赖状态。患者健康指标、医疗诊断及医疗设备业务数据不在本项目范围内。
 
