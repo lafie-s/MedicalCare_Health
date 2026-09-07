@@ -91,6 +91,25 @@ test("environment alert query rejects unauthorized scope and invalid filters", a
   const result = await ctx.app.inject({ url: "/api/v1/alerts?environmentId=local&state=all&page=2", headers: ctx.headers });
   assert.equal(result.statusCode, 200); assert.equal(result.json().page, 1); assert.equal(result.json().active, 0);
 });
+
+test("maintenance endpoints enforce roles, environment isolation and idempotent writes", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  const base = `/api/v1/services/${ctx.payload.idempotencyKey}/maintenance`;
+  const payload = { idempotencyKey: randomUUID(), startsAt: Date.now() + 60_000, endsAt: Date.now() + 3600_000, owner: "ops", reason: "inspection" };
+  const create = () => ctx.app.inject({ method: "POST", url: base, headers: ctx.headers, payload });
+  assert.equal((await ctx.app.inject(base)).statusCode, 401);
+  ctx.setRole("viewer"); assert.equal((await create()).statusCode, 403);
+  assert.equal((await ctx.app.inject({ url: base, headers: ctx.headers })).statusCode, 200);
+  ctx.setRole("operator"); assert.equal((await create()).statusCode, 201); assert.equal((await create()).statusCode, 201);
+  assert.equal((await ctx.app.inject({ url: base, headers: ctx.headers })).json().total, 1);
+  const cancel = () => ctx.app.inject({ method: "POST", url: `/api/v1/maintenance/${payload.idempotencyKey}/cancel`, headers: ctx.headers, payload: { reason: "rescheduled" } });
+  ctx.setRole("viewer"); assert.equal((await cancel()).statusCode, 403);
+  ctx.setRole("operator"); assert.equal((await cancel()).statusCode, 200); assert.equal((await cancel()).statusCode, 200);
+  const other = ctx.services.create(randomUUID(), "prod", { name: "hidden", owner: "ops", targetId: "prod", intervalSeconds: 30 }, "ops", "test");
+  assert.equal((await ctx.app.inject({ url: `/api/v1/services/${other.id}/maintenance`, headers: ctx.headers })).statusCode, 404);
+  assert.equal((await ctx.app.inject({ method: "POST", url: base, headers: ctx.headers, payload: { ...payload, idempotencyKey: randomUUID(), reason: " " } })).statusCode, 400);
+});
 test("service directory enforces environment scope and admin-only writes", async (t) => {
   const ctx = setup(); t.after(ctx.close);
   assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);

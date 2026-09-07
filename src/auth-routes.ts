@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { ServiceStore } from "./service-store.js";
 import { registerServiceRoutes } from "./service-routes.js";
 import { registerAlertRoutes } from "./alert-routes.js";
+import { registerMaintenanceRoutes } from "./maintenance-routes.js";
 import type { ProbeRunner } from "./probe.js";
 
 export interface AuthDependencies {
@@ -115,6 +116,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
   });
   if (deps.services) await registerServiceRoutes(app, deps.services, authorize, deps.probeRunner);
   if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
+  if (deps.services) await registerMaintenanceRoutes(app, deps.services, authorize);
   app.get("/api/v1/environments", async (request, reply) => {
     const context = await authorize(request, reply);
     if (!context) return;

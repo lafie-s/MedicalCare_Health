@@ -6,6 +6,7 @@
 | --- | --- | --- | --- | --- |
 | Form | web/components/login-form.tsx、web/components/service-panel.tsx | 登录与服务配置 API | credentials / service | 浏览器必填与失败路径 |
 | Select/Listbox | web/components/service-panel.tsx | DESIGN.md | native | 原生弹层及键盘选择 |
+| Date | web/components/maintenance-dialog.tsx | docs/maintenance-windows.md | native datetime-local | 北京时间、键盘分段、窄屏及服务端时间边界 |
 | Dialog | web/components/dialog.tsx | 当前约定 | form / confirmation | 焦点、Escape 和放弃修改 |
 | Scrollbar | web/app/globals.css | DESIGN.md | 全局标准与引擎回退 | 浏览器计算样式 |
 | Feedback | web/components/ui.tsx | 当前约定 | error / status | 浏览器 live region |
@@ -37,3 +38,5 @@ HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏
 告警面板复用 Dialog、Button、Notice 及原生 select，规则保存确认在同一模态内显示，说明重置计数/终止活动事件。未保存草稿阻止刷新、分页与事件操作，取消先确认放弃，401/403 按安全要求清除。事件每页 20 条；页码作为临时弹窗状态，每次打开回到第一页，不污染页面 URL。确认、恢复与关闭使用不同文字，已恢复才提供关闭入口。面板是手动刷新快照，显示查询时间及采样未知/过期原因。
 
 环境中心复用 Button、Notice、原生 select 和服务告警 Dialog。筛选/页码写入 URL，切环境重置，越界页码按服务器结果纠正。首次/筛选加载隐藏旧列表，后台刷新保留带时间的查询快照，失败清除。中心每 30 秒刷新，服务弹窗期间暂停；弹窗关闭后重读，来源行消失时焦点回退到中心。中心是自然高度分页列表，不新增嵌套滚动容器。
+
+维护窗口由 MaintenanceDialog/MaintenanceForm 维护，复用 Dialog 模态与焦点恢复。日期使用浏览器原生 datetime-local（native owner），统一解析北京时间。表单 noValidate，应用负责首错聚焦、错误、等待、重试幂等与修改放弃确认，取消需原因。每页 20 条，列表为带时间的手动快照；异常清除旧数据。只读用户仅查询，401/403 清除受保护页面。

@@ -17,7 +17,7 @@ export async function registerServiceRoutes(app: FastifyInstance, store: Service
     if (!environmentId || !context.grant.environmentIds.includes(environmentId)) return fail(request, reply, 403, "FORBIDDEN", "无权访问该环境");
     const targets = (context.policy.probeTargets ?? []).filter((target) => target.environmentId === environmentId);
     const asOf = Date.now();
-    const items = store.list(environmentId).map((service) => ({ ...service, health: serviceHealth(service, targets.find((target) => target.id === service.targetId), store, asOf) }));
+    const items = store.list(environmentId).map((service) => ({ ...service, maintenanceWindow: store.maintenance.next(service.id, asOf), health: serviceHealth(service, targets.find((target) => target.id === service.targetId), store, asOf) }));
     return { items, overview: summarizeHealth(items, asOf), asOf, targets: targets.map(({ id, name }) => ({ id, name })), limit: 100, probingAvailable: Boolean(runner) };
   });
   app.post("/api/v1/services", async (request, reply) => {
