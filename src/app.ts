@@ -1,6 +1,7 @@
 import Fastify, { LogController } from "fastify";
+import { registerAuthRoutes, type AuthDependencies } from "./auth-routes.js";
 
-export function buildApp() {
+export function buildApp(auth?: AuthDependencies) {
   const app = Fastify({
     bodyLimit: 16_384,
     logger: { level: "info", redact: ["req.headers.authorization", "req.headers.cookie", "res.headers.set-cookie"] },
@@ -18,7 +19,14 @@ export function buildApp() {
   });
   app.setNotFoundHandler((request, reply) => reply.code(404).send({ code: "NOT_FOUND", message: "接口不存在", requestId: request.id }));
   app.get("/health/live", async () => ({ status: "ok", service: "medicalcare-health" }));
-  // Readiness is deliberately unavailable until the identity and state store are configured.
-  app.get("/health/ready", async (_request, reply) => reply.code(503).send({ status: "unavailable", reason: "NOT_CONFIGURED" }));
+  app.get("/health/ready", async (_request, reply) => {
+    if (!auth) return reply.code(503).send({ status: "unavailable", reason: "NOT_CONFIGURED" });
+    try {
+      const policy = await auth.policy();
+      const ready = auth.store.ready() && policy.grants.length > 0 && await auth.identity.ready();
+      return reply.code(ready ? 200 : 503).send({ status: ready ? "ready" : "unavailable" });
+    } catch { return reply.code(503).send({ status: "unavailable" }); }
+  });
+  if (auth) app.register(registerAuthRoutes, auth);
   return app;
 }

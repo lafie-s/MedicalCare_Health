@@ -7,10 +7,11 @@
 - [项目技术文档](docs/technical-design.md)：范围、架构、功能、指标、数据模型、接口、安全与验收。
 - [开发计划与甘特图](docs/project-plan.md)：阶段依赖、暂定排期、交付与验收。
 - [工程协作规则](AGENTS.md)：功能完成标准、Git 提交及推送要求。
+- [本地开发与身份接入](docs/local-development.md)：运行配置、授权、接口和当前限制。
 
 ## 当前状态
 
-已开始后端实现，采用与本机 MedicalCareWeb chat-service 一致的 Fastify / TypeScript 技术栈。实际监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
+已实现后端基础、员工令牌交换、可撤销的平台会话及环境访问授权，采用与本机 MedicalCareWeb chat-service 一致的 Fastify / TypeScript 技术栈。登录页面、监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
 
 ## 本地启动
 
