@@ -34,6 +34,24 @@ test("health overview is environment-authorized and shares a consistent service 
   assert.equal(response.json().overview.asOf, response.json().asOf);
   assert.ok(!response.body.includes("127.0.0.1:9999"));
 });
+
+test("trend query enforces authorization and bounded ranges for read-only users", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  const url = `/api/v1/services/${ctx.payload.idempotencyKey}/trend`;
+  assert.equal((await ctx.app.inject(url)).statusCode, 401);
+  const other = ctx.services.create(randomUUID(), "prod", { name: "secret", owner: "ops", targetId: "prod", intervalSeconds: 30 }, "ops", "test");
+  assert.equal((await ctx.app.inject({ url: `/api/v1/services/${other.id}/trend`, headers: ctx.headers })).statusCode, 404);
+  ctx.setRole("viewer");
+  for (const hours of ["0", "48", "1.5", "NaN"]) assert.equal((await ctx.app.inject({ url: `${url}?hours=${hours}`, headers: ctx.headers })).statusCode, 400);
+  assert.equal((await ctx.app.inject({ url: `${url}?hours=1&start=0`, headers: ctx.headers })).statusCode, 400);
+  const result = await ctx.app.inject({ url: `${url}?hours=24`, headers: ctx.headers });
+  assert.equal(result.statusCode, 200); assert.equal(result.json().points.length, 96);
+  assert.ok(result.json().points.every((point: { averageLatencyMs: null }) => point.averageLatencyMs === null));
+  assert.ok(!result.body.includes("127.0.0.1"));
+  ctx.policy.probeTargets = [];
+  assert.equal((await ctx.app.inject({ url, headers: ctx.headers })).json().targetAvailable, false);
+});
 test("service directory enforces environment scope and admin-only writes", async (t) => {
   const ctx = setup(); t.after(ctx.close);
   assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);

@@ -10,6 +10,7 @@
 | Scrollbar | web/app/globals.css | DESIGN.md | 全局标准与引擎回退 | 浏览器计算样式 |
 | Feedback | web/components/ui.tsx | 当前约定 | error / status | 浏览器 live region |
 | Health overview | web/components/health-overview.tsx | src/health-summary.ts、docs/service-monitoring.md | HTTP | 状态分布、未知/过期、键盘详情链接 |
+| Trend chart/table | web/components/probe-trend.tsx | docs/service-monitoring.md | HTTP snapshot | 断点、最多 96 段、表格滚动及错误重试 |
 
 登录成功留在工作台，查询身份与授权环境；密码不持久化，失败保留邮箱、清空密码并聚焦。没有注册、密码重置或创建管理员入口，员工账号维护沿用 MedicalCareWeb。
 
@@ -28,3 +29,5 @@
 默认 zh-CN 与 Asia/Shanghai，技术品牌名保持原名；日期使用 Intl。界面目标 WCAG 2.2 AA，首错焦点、按钮键盘操作、loading live region、窄屏和减少动画状态必须验证。登录表单无额外导航，密码不可恢复，不做持久化草稿。
 
 HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏汇总，失败时不沿用旧计数。状态与明细共用纯规则，每秒判定过期；注意清单异常优先，服务名称为原生锚点链接，目标服务可接受焦点。计数使用语义 dl，桌面四列、窄屏两列，异常文字与数字均有文字语义，不只靠颜色。环境选择继续保存在 URL，概览无独立筛选器。
+
+趋势查看复用 Dialog、Button、Notice 和原生 select；1/6/24 小时为同页临时检查选项，每次打开默认 1 小时，不写 URL（避免关闭对话框后留下失效的弹窗筛选状态）。弹窗期间暂停服务后台刷新，趋势为带时间戳的手动刷新快照。无数据图表断线，details 内提供语义 table 精确值，最多 96 行；表格内部滚动，不限制外部页面高度。切换或关闭取消旧查询，失败隐藏旧图表，关闭与 Escape 恢复来源按钮焦点。

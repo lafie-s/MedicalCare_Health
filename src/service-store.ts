@@ -87,4 +87,17 @@ export class ServiceStore {
     return { samples: Number(row.samples), successful: Number(row.successful) };
   }
   pruneProbes(now = Date.now()) { this.db.prepare("DELETE FROM probe_runs WHERE outcome != 'running' AND started_at < ?").run(now - 86_400_000); }
+  trendBuckets(service: Service, fingerprint: string, start: number, end: number, bucketMs: number) {
+    // Integer millisecond timestamps: each bucket is (start, end], matching overview windows.
+    return this.db.prepare(`SELECT CAST((started_at - ? - 1) / ? AS INTEGER) AS bucket,
+      SUM(CASE WHEN outcome != 'interrupted' THEN 1 ELSE 0 END) AS samples,
+      SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) AS successful,
+      SUM(CASE WHEN outcome = 'interrupted' THEN 1 ELSE 0 END) AS interrupted,
+      COUNT(CASE WHEN outcome IN ('success', 'http_error') THEN latency_ms END) AS latency_samples,
+      AVG(CASE WHEN outcome IN ('success', 'http_error') THEN latency_ms END) AS latency,
+      MAX(CASE WHEN outcome != 'interrupted' THEN started_at END) AS latest
+      FROM probe_runs WHERE service_id = ? AND service_version = ? AND target_fingerprint = ?
+      AND started_at > ? AND started_at <= ? AND outcome IN ('success', 'http_error', 'timeout', 'connection_error', 'interrupted')
+      GROUP BY bucket ORDER BY bucket`).all(start, bucketMs, service.id, service.version, fingerprint, start, end);
+  }
 }

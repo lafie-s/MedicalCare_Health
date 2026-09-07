@@ -9,7 +9,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    const message = response.status === 404 ? "平台登录服务尚未配置，请联系管理员" : response.status === 429 ? "操作过于频繁，请稍后重试" : body?.message ?? "服务暂不可用，请稍后重试";
+    const message = response.status === 429 ? "操作过于频繁，请稍后重试" : body?.message ?? (response.status === 404 ? "请求的服务不存在或尚未配置，请联系管理员" : "服务暂不可用，请稍后重试");
     throw new ApiError(response.status, message);
   }
   return response.status === 204 ? undefined as T : response.json();

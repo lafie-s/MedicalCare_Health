@@ -4,6 +4,8 @@ import type { AccessPolicy, Grant } from "./access-policy.js";
 import { ServiceConflict, ServiceLimit, type ServiceStore } from "./service-store.js";
 import { ProbeRejected, serviceHealth, type ProbeRunner } from "./probe.js";
 import { summarizeHealth } from "./health-summary.js";
+import { probeTrend, type TrendHours } from "./probe-trend.js";
+import { targetFingerprint } from "./probe.js";
 
 export type Authorization = (request: FastifyRequest, reply: FastifyReply) => Promise<{ principal: { userId: string }; grant: Grant; policy: AccessPolicy } | null>;
 const input = z.object({ name: z.string().trim().min(1).max(80), owner: z.string().trim().min(1).max(80), targetId: z.string().min(1).max(64), intervalSeconds: z.union([z.literal(30), z.literal(60), z.literal(300)]) });
@@ -32,6 +34,15 @@ export async function registerServiceRoutes(app: FastifyInstance, store: Service
       if (error instanceof ServiceLimit) return fail(request, reply, 409, "LIMIT_REACHED", "当前环境已达到 100 个服务上限");
       throw error;
     }
+  });
+  app.get<{ Params: { id: string }; Querystring: { hours?: string } }>("/api/v1/services/:id/trend", async (request, reply) => {
+    const context = await authorize(request, reply); if (!context) return;
+    const service = store.get(request.params.id);
+    if (!service || !context.grant.environmentIds.includes(service.environmentId)) return fail(request, reply, 404, "NOT_FOUND", "服务不存在或无权访问");
+    const query = z.object({ hours: z.enum(["1", "6", "24"]).default("1") }).strict().safeParse(request.query);
+    if (!query.success) return fail(request, reply, 400, "INVALID_RANGE", "请选择最近 1、6 或 24 小时");
+    const target = (context.policy.probeTargets ?? []).find((target) => target.environmentId === service.environmentId && target.id === service.targetId);
+    return { ...probeTrend(store, service, target ? targetFingerprint(target) : undefined, Number(query.data.hours) as TrendHours), targetAvailable: Boolean(target), enabled: service.enabled };
   });
   app.patch<{ Params: { id: string } }>("/api/v1/services/:id", async (request, reply) => {
     const context = await authorize(request, reply); if (!context) return;
