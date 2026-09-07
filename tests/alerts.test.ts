@@ -81,3 +81,24 @@ test("rule counters survive restart and failed alert audit rolls back sample com
   store.finishProbe(id, { outcome: "timeout", httpStatus: null, latencyMs: null }, timestamp + 1);
   assert.equal(store.alerts.list(ctx.service.id, 1).total, 1);
 });
+
+test("environment alerts filter, paginate, clamp and exclude other environments", (t) => {
+  const ctx = setup(); t.after(() => ctx.store.close());
+  for (let i = 1; i <= 22; i++) {
+    const service = ctx.store.create(randomUUID(), i === 22 ? "prod" : "local", { name: `service-${i}`, owner: "ops", targetId: `target-${i}`, intervalSeconds: 30 }, "ops", "test");
+    ctx.store.alerts.saveRule(service.id, { ...rule, failureCount: 1, severity: i === 1 ? "critical" : "warning" }, 0, "ops", "rule", ctx.start);
+    const id = randomUUID(); ctx.store.claimProbe(service, id, "fixed", "ops", "test", ctx.start + 30_000);
+    ctx.store.finishProbe(id, { outcome: "timeout", httpStatus: null, latencyMs: null }, ctx.start + 30_001);
+  }
+  const first = ctx.store.alerts.environment("local", "active", 1);
+  assert.equal(first.total, 21); assert.equal(first.items.length, 20); assert.equal(first.criticalActive, 1);
+  const last = ctx.store.alerts.environment("local", "active", 999);
+  assert.equal(last.page, 2); assert.equal(last.items.length, 1);
+  assert.equal(new Set([...first.items, ...last.items].map((event) => event.id)).size, 21);
+  ctx.store.alerts.transition(last.items[0]!.id, "acknowledge", "ops", "ack");
+  const filtered = ctx.store.alerts.environment("local", "firing", 2);
+  assert.equal(filtered.page, 1); assert.equal(filtered.total, 20); assert.equal(filtered.active, 21);
+  assert.equal(filtered.counts.acknowledged, 1);
+  assert.equal(ctx.store.alerts.environment("local", "closed", 1).total, 0);
+  assert.equal(ctx.store.alerts.environment("prod", "all", 1).total, 1);
+});

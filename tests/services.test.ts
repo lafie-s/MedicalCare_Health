@@ -81,6 +81,16 @@ test("alert routes authorize rule writes and event actions independently", async
   const acknowledge = () => ctx.app.inject({ method: "POST", url: `/api/v1/alerts/${event.id}/acknowledge`, headers: ctx.headers });
   assert.equal((await acknowledge()).statusCode, 200); assert.equal((await acknowledge()).statusCode, 200);
 });
+
+test("environment alert query rejects unauthorized scope and invalid filters", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  assert.equal((await ctx.app.inject("/api/v1/alerts?environmentId=local")).statusCode, 401);
+  assert.equal((await ctx.app.inject({ url: "/api/v1/alerts?environmentId=prod", headers: ctx.headers })).statusCode, 403);
+  for (const suffix of ["state=invalid", "page=0", "page=100001", "secret=1"]) assert.equal((await ctx.app.inject({ url: `/api/v1/alerts?environmentId=local&${suffix}`, headers: ctx.headers })).statusCode, 400);
+  ctx.setRole("viewer");
+  const result = await ctx.app.inject({ url: "/api/v1/alerts?environmentId=local&state=all&page=2", headers: ctx.headers });
+  assert.equal(result.statusCode, 200); assert.equal(result.json().page, 1); assert.equal(result.json().active, 0);
+});
 test("service directory enforces environment scope and admin-only writes", async (t) => {
   const ctx = setup(); t.after(ctx.close);
   assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);

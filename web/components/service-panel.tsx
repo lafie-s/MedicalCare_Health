@@ -6,6 +6,7 @@ import { Dialog } from "./dialog";
 import { HealthOverview } from "./health-overview";
 import { TrendDialog } from "./probe-trend";
 import { AlertDialog } from "./alert-dialog";
+import { AlertCenter } from "./alert-center";
 import { currentHealth, healthReasons as reasons } from "../../src/health-summary";
 
 type Health = { status: string; reason: string; latest: { startedAt: number; httpStatus: number | null; latencyMs: number | null; outcome: string } | null; availabilityPercent: number | null; samplesInWindow: number; asOf: number };
@@ -60,7 +61,7 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
     catch (err) { if (err instanceof ApiError && [401, 403].includes(err.status)) auth.current(); else setError(err instanceof Error ? err.message : "保存失败，请重试"); }
     finally { setBusy(false); }
   }
-  return <section className="service-panel" aria-labelledby="services-title"><div className="panel-heading"><h2 id="services-title">服务目录</h2><div className="inline-actions"><Button onClick={() => void load()} busy={loading}>刷新服务</Button>{role === "admin" && <Button className="primary" disabled={!data?.targets.length || loading} onClick={() => { setMessage(""); setEdit("new"); }}>登记服务</Button>}</div></div>
+  return <><section className="service-panel" aria-labelledby="services-title"><div className="panel-heading"><h2 id="services-title">服务目录</h2><div className="inline-actions"><Button onClick={() => void load()} busy={loading}>刷新服务</Button>{role === "admin" && <Button className="primary" disabled={!data?.targets.length || loading} onClick={() => { setMessage(""); setEdit("new"); }}>登记服务</Button>}</div></div>
     <div className="service-content">{message && <Notice>{message}</Notice>}{!toggle && error && <Notice error>{error}</Notice>}{loading ? <Notice>正在读取服务配置…</Notice> : data && <>
       <HealthOverview items={data.items} now={now} asOf={data.asOf} />
       {role === "admin" && !data.targets.length && <Notice>当前环境没有获准探测的目标，请先由部署管理员配置目标白名单。</Notice>}
@@ -71,7 +72,7 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
     {trend && <TrendDialog service={trend} onClose={() => setTrend(null)} onUnauthorized={() => auth.current()} />}
     {edit && data && <ServiceForm key={edit === "new" ? "new" : edit.id} service={edit === "new" ? null : edit} targets={data.targets} environmentId={environmentId} onClose={() => setEdit(null)} onUnauthorized={() => auth.current()} onSaved={() => { setEdit(null); setMessage("服务配置已保存。"); void load(); }} />}
     {toggle && <Dialog title={`${toggle.enabled ? "停用" : "启用"} ${toggle.name}`} onCancel={() => { if (!busy) setToggle(null); }}><p>{toggle.enabled ? "停用后不再采集该服务的运行指标，已有记录会保留。" : "启用后将按配置恢复采集。"}</p>{error && <Notice error>{error}</Notice>}<div className="dialog-actions"><Button autoFocus disabled={busy} onClick={() => setToggle(null)}>取消</Button><Button className="primary" busy={busy} onClick={() => void changeState()}>{toggle.enabled ? "确认停用" : "确认启用"}</Button></div></Dialog>}
-  </section>;
+  </section><AlertCenter environmentId={environmentId} revision={0} paused={Boolean(edit || toggle || trend || alerts)} onUnauthorized={() => auth.current()} onOpen={(id) => { const service = data?.items.find((item) => item.id === id); if (service) setAlerts(service); else { setError("服务目录暂不可用，请刷新服务后重试"); } }} /></>;
 }
 
 function ProbeInfo({ service, now }: { service: Service; now: number }) {

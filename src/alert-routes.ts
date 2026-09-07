@@ -5,6 +5,13 @@ import type { Authorization } from "./service-routes.js";
 import { AlertConflict } from "./alert-store.js";
 import { serviceHealth } from "./probe.js";
 export async function registerAlertRoutes(app: FastifyInstance, store: ServiceStore, authorize: Authorization) {
+  app.get("/api/v1/alerts", async (request, reply) => {
+    const context = await authorize(request, reply); if (!context) return;
+    const parsed = z.object({ environmentId: z.string().min(1), state: z.enum(["active", "all", "firing", "acknowledged", "recovered", "closed", "terminated"]).default("active"), page: z.coerce.number().int().min(1).max(100000).default(1) }).strict().safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ message: "请选择有效的环境、告警状态和页码", code: "INVALID_REQUEST", requestId: request.id });
+    if (!context.grant.environmentIds.includes(parsed.data.environmentId)) return reply.code(403).send({ message: "无权访问该环境", code: "FORBIDDEN", requestId: request.id });
+    return store.alerts.environment(parsed.data.environmentId, parsed.data.state, parsed.data.page);
+  });
   app.get<{ Params: { id: string }; Querystring: { page?: string } }>("/api/v1/services/:id/alerts", async (request, reply) => {
     const context = await authorize(request, reply); if (!context) return;
     const service = store.get(request.params.id);

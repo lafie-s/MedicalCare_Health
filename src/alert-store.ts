@@ -4,6 +4,7 @@ import type { ProbeRecord, Service } from "./service-store.js";
 export interface AlertRuleInput { failureCount: number; recoveryCount: number; severity: "warning" | "critical"; enabled: boolean }
 export interface AlertRule extends AlertRuleInput { version: number; updatedAt: number }
 export type AlertState = "firing" | "acknowledged" | "recovered" | "closed" | "terminated";
+export type AlertFilter = AlertState | "active" | "all";
 export interface AlertEvent { id: string; serviceId: string; state: AlertState; severity: string; openedAt: number; lastSeen: number; recoveredAt: number | null; acknowledgedBy: string | null; endedAt: number | null; reason: string | null; rule: AlertRuleInput & { version: number; serviceVersion: number } }
 export class AlertConflict extends Error {}
 
@@ -39,6 +40,29 @@ export class AlertStore {
   list(serviceId: string, page: number) {
     const total = Number(this.db.prepare("SELECT COUNT(*) AS total FROM alert_events WHERE service_id = ?").get(serviceId)!.total);
     return { total, page, pageSize: 20, items: this.db.prepare("SELECT * FROM alert_events WHERE service_id = ? ORDER BY opened_at DESC, id DESC LIMIT 20 OFFSET ?").all(serviceId, (page - 1) * 20).map((row) => this.map(row)) };
+  }
+  environment(environmentId: string, filter: AlertFilter, requestedPage: number) {
+    // Read counts and rows from one snapshot, including services outside the displayed page.
+    this.db.exec("BEGIN");
+    try {
+      const counts = { firing: 0, acknowledged: 0, recovered: 0, closed: 0, terminated: 0 };
+      let criticalActive = 0;
+      for (const row of this.db.prepare(`SELECT a.state, a.severity, COUNT(*) AS total FROM alert_events a
+        JOIN services s ON s.id=a.service_id WHERE s.environment_id=? GROUP BY a.state, a.severity`).all(environmentId)) {
+        const state = row.state as AlertState; counts[state] += Number(row.total);
+        if (["firing", "acknowledged"].includes(state) && row.severity === "critical") criticalActive += Number(row.total);
+      }
+      const active = counts.firing + counts.acknowledged;
+      const total = filter === "all" ? Object.values(counts).reduce((a, b) => a + b, 0) : filter === "active" ? active : counts[filter];
+      const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / 20)));
+      const predicate = filter === "all" ? "1=1" : filter === "active" ? "a.state IN ('firing','acknowledged')" : "a.state=?";
+      const args = filter === "all" || filter === "active" ? [environmentId] : [environmentId, filter];
+      const items = this.db.prepare(`SELECT a.*, s.name AS service_name, s.owner AS service_owner FROM alert_events a
+        JOIN services s ON s.id=a.service_id WHERE s.environment_id=? AND ${predicate}
+        ORDER BY a.opened_at DESC, a.id DESC LIMIT 20 OFFSET ?`).all(...args, (page - 1) * 20)
+        .map((row) => ({ ...this.map(row), serviceName: String(row.service_name), owner: String(row.service_owner) }));
+      this.db.exec("COMMIT"); return { counts, active, criticalActive, total, page, pageSize: 20, filter, items, asOf: Date.now() };
+    } catch (error) { this.db.exec("ROLLBACK"); throw error; }
   }
   // Called inside the enclosing service/sample transaction, so invalidation cannot be lost.
   invalidate(serviceId: string, reason: string, requestId: string, now = Date.now()) {

@@ -14,5 +14,6 @@ export function HealthOverview({ items, now, asOf }: { items: Service[]; now: nu
     <p className="overview-meta">数据查询时间 · 北京时间 {new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(asOf)} · 每 30 秒刷新 · {summary.stale} 个服务数据过期</p>
     {!items.length ? <p>尚未登记服务，无法判断环境健康状态。</p> : <><h3>需要关注</h3>{attention.length ? <ul className="attention-list">{attention.map(({ item, reason }) => <li key={item.id}><a href={`#service-${item.id}`}>{item.name}</a><span>{healthReasons[reason] ?? "状态未知"} · {item.owner}</span></li>)}</ul> : <p>{summary.counts.disabled ? "当前没有已知探测异常，停用服务未纳入监测。" : "当前没有异常或未知的已登记服务。"}</p>}</>}
     <p className="overview-meta">仅反映 HTTP 探测；停用不等于维护中，未登记服务及资源、业务指标不在本概览范围。</p>
+    <a className="overview-alert-link" href="#environment-alerts">查看当前环境告警</a>
   </section>;
 }

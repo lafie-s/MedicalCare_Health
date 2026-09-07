@@ -12,6 +12,7 @@
 | Health overview | web/components/health-overview.tsx | src/health-summary.ts、docs/service-monitoring.md | HTTP | 状态分布、未知/过期、键盘详情链接 |
 | Trend chart/table | web/components/probe-trend.tsx | docs/service-monitoring.md | HTTP snapshot | 断点、最多 96 段、表格滚动及错误重试 |
 | Alert workflow | web/components/alert-dialog.tsx | docs/http-alerts.md | rule / event | 保存确认、状态操作、分页、冲突草稿 |
+| Alert center | web/components/alert-center.tsx | docs/http-alerts.md | environment | URL 筛选、20 条分页、处理回流、焦点回退 |
 
 登录成功留在工作台，查询身份与授权环境；密码不持久化，失败保留邮箱、清空密码并聚焦。没有注册、密码重置或创建管理员入口，员工账号维护沿用 MedicalCareWeb。
 
@@ -34,3 +35,5 @@ HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏
 趋势查看复用 Dialog、Button、Notice 和原生 select；1/6/24 小时为同页临时检查选项，每次打开默认 1 小时，不写 URL（避免关闭对话框后留下失效的弹窗筛选状态）。弹窗期间暂停服务后台刷新，趋势为带时间戳的手动刷新快照。无数据图表断线，details 内提供语义 table 精确值，最多 96 行；表格内部滚动，不限制外部页面高度。切换或关闭取消旧查询，失败隐藏旧图表，关闭与 Escape 恢复来源按钮焦点。
 
 告警面板复用 Dialog、Button、Notice 及原生 select，规则保存确认在同一模态内显示，说明重置计数/终止活动事件。未保存草稿阻止刷新、分页与事件操作，取消先确认放弃，401/403 按安全要求清除。事件每页 20 条；页码作为临时弹窗状态，每次打开回到第一页，不污染页面 URL。确认、恢复与关闭使用不同文字，已恢复才提供关闭入口。面板是手动刷新快照，显示查询时间及采样未知/过期原因。
+
+环境中心复用 Button、Notice、原生 select 和服务告警 Dialog。筛选/页码写入 URL，切环境重置，越界页码按服务器结果纠正。首次/筛选加载隐藏旧列表，后台刷新保留带时间的查询快照，失败清除。中心每 30 秒刷新，服务弹窗期间暂停；弹窗关闭后重读，来源行消失时焦点回退到中心。中心是自然高度分页列表，不新增嵌套滚动容器。
