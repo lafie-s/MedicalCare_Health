@@ -11,7 +11,7 @@
 
 ## 当前状态
 
-已实现后端基础、员工令牌交换、可撤销的平台会话及环境访问授权，采用与本机 MedicalCareWeb chat-service 一致的 Fastify / TypeScript 技术栈。登录页面、监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
+已实现后端基础、员工账号登录页面、可撤销的平台会话及授权环境工作台。前端为 Next.js / React，后端为 Fastify / TypeScript，与 MedicalCareWeb 对齐。真实员工联调、监控数据和生产环境尚未接入。详见 [实施记录](docs/implementation-log.md)。
 
 ## 本地启动
 
@@ -24,6 +24,8 @@ npm run dev
 ```
 
 默认监听 `http://127.0.0.1:4310`。`GET /health/live` 检查进程存活；未完成配置时 `GET /health/ready` 返回 503。发布构建使用 `npm run build`，启动构建产物使用 `npm start`。
+
+前端：先执行 `npm ci --prefix web`，在另一终端运行 `npm run dev:web`，打开 `http://127.0.0.1:4320`。按接入说明将后端 `PLATFORM_ORIGIN` 设置为该前端地址，并配置身份服务及运维授权。前端检查执行 `npm run check:web`。
 
 已确认：本项目中的“健康指标”指 MedicalCareWeb 系统运行指标，包括服务可用性、接口延迟与错误率、资源使用情况及依赖状态。患者健康指标、医疗诊断及医疗设备业务数据不在本项目范围内。
 

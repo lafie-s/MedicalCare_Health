@@ -42,7 +42,7 @@ F07 初始仅支持记录型维护及探测重试。服务重启、缓存刷新�
 
 已只读核实本机 `F:\MedicalCareWeb` 的代码和依赖：主站使用 Next.js / React，chat-service 使用 Fastify / TypeScript，并已有员工身份与健康探测接口。后端工程已开始实现，其余部署方案继续调研。
 
-- 前端：采用 TypeScript + Next.js / React，与 MedicalCareWeb 保持一致；尚未实现。
+- 前端：采用 TypeScript + Next.js / React，与 MedicalCareWeb 保持一致；已实现员工登录与授权环境工作台，默认 4320 端口，通过同源代理访问后端。
 - 后端：采用 Fastify 5 + TypeScript，版本与现有 chat-service 对齐，独立运行于默认 4310 端口。
 - 已实现身份基础：通过现有 `/auth/me` 交换独立平台会话；本地授权文件按员工 ID 明确分配角色和环境，每次请求重读。当前会话与审计采用 SQLite 单实例存储，上游令牌加密保存，不作为时序存储选型。配置、接口和上游撤销限制见 `docs/local-development.md`。
 - 配置及业务数据：优先复用现有关系数据库；无既有约束时评估 PostgreSQL。

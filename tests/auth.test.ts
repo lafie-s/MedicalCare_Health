@@ -15,6 +15,7 @@ function setup() {
   let policy: AccessPolicy = { environments: [{ id: "local", name: "开发", type: "development" }, { id: "prod", name: "生产", type: "production" }], grants: [{ userId: "ops-1", role: "viewer", environmentIds: ["local"] }] };
   let state: "valid" | "expired" | "offline" = "valid";
   const identity: IdentityProvider = {
+    async login(email, password) { return email === "ops@example.test" && password === "test-password" ? "valid-token" : null; },
     async verify(token) {
       if (state === "offline") throw new IdentityUnavailable();
       if (state === "expired" || token !== "valid-token") return null;
@@ -32,6 +33,20 @@ test("unauthenticated and ungranted staff cannot access platform", async (t) => 
   assert.equal((await ctx.app.inject("/api/v1/me")).statusCode, 401);
   ctx.setPolicy({ ...ctx.getPolicy(), grants: [] });
   assert.equal((await ctx.login()).statusCode, 403);
+});
+
+test("password login validates credentials and issues only a local cookie", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  const request = (payload: { email: string; password: string }) => ctx.app.inject({ method: "POST", url: "/api/v1/auth/login", headers: { origin: "http://127.0.0.1:4310" }, payload });
+  assert.equal((await request({ email: "invalid", password: "x" })).statusCode, 400);
+  assert.equal((await request({ email: "ops@example.test", password: "wrong" })).statusCode, 401);
+  const success = await request({ email: "ops@example.test", password: "test-password" });
+  assert.equal(success.statusCode, 200);
+  assert.equal(success.cookies.length, 1);
+  assert.equal(success.cookies[0]!.name, "mc_health_session");
+  assert.deepEqual(Object.keys(success.json()), ["expiresAt"]);
+  ctx.setPolicy({ ...ctx.getPolicy(), grants: [] });
+  assert.equal((await request({ email: "ops@example.test", password: "test-password" })).statusCode, 403);
 });
 
 test("identity exchange sets protected cookie, restricts environment and does not inherit upstream admin", async (t) => {

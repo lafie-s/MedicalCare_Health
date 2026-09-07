@@ -5,6 +5,7 @@ import type { AccessPolicy } from "./access-policy.js";
 import type { IdentityProvider } from "./identity.js";
 import { IdentityUnavailable } from "./identity.js";
 import type { SessionStore } from "./session-store.js";
+import { z } from "zod";
 
 export interface AuthDependencies {
   identity: IdentityProvider;
@@ -25,6 +26,26 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
     if (request.method !== "GET" && request.method !== "HEAD" && request.headers.origin !== deps.origin) {
       return fail(request, reply, 403, "INVALID_ORIGIN", "请从平台页面发起操作");
     }
+  });
+
+  app.post("/api/v1/auth/login", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const body = z.object({ email: z.email().max(254), password: z.string().min(1).max(256) }).strict().safeParse(request.body);
+    if (!body.success) return fail(request, reply, 400, "INVALID_REQUEST", "请输入有效邮箱和密码");
+    if (!deps.identity.login) return fail(request, reply, 503, "LOGIN_UNAVAILABLE", "员工登录尚未配置，请联系管理员");
+    try {
+      const token = await deps.identity.login(body.data.email, body.data.password);
+      const principal = token ? await deps.identity.verify(token) : null;
+      if (!token || !principal) return fail(request, reply, 401, "INVALID_CREDENTIALS", "邮箱或密码不正确，请重新输入");
+      const policy = await deps.policy();
+      const grant = policy.grants.find((item) => item.userId === principal.userId);
+      if (!grant) {
+        deps.store.audit(principal.userId, "session.denied", request.id);
+        return fail(request, reply, 403, "FORBIDDEN", "尚未获得平台运维权限，请联系管理员");
+      }
+      const session = deps.store.create(principal.userId, token, request.id);
+      reply.setCookie(COOKIE, session.id, { ...cookieOptions, maxAge: 900 });
+      return { expiresAt: new Date(session.expiresAt).toISOString() };
+    } catch { return fail(request, reply, 503, "AUTH_UNAVAILABLE", "身份或权限服务暂不可用，请稍后重试"); }
   });
 
   app.post("/api/v1/auth/session", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {

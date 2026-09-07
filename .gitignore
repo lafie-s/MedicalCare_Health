@@ -7,3 +7,6 @@ coverage/
 data/
 *.log
 *.tsbuildinfo
+.next/
+output/
+.playwright-cli/

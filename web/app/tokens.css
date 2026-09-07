@@ -1,0 +1,22 @@
+/* Generated from DESIGN.md by scripts/design-tokens.mjs. */
+:root {
+  --primary: #2059c9;
+  --primary-hover: #17449f;
+  --ink: #192b44;
+  --muted: #586a80;
+  --surface: #ffffff;
+  --background: #f3f6fa;
+  --border: #d5deea;
+  --navy: #142b49;
+  --on-navy: #c5d7ed;
+  --accent: #85d7e4;
+  --danger: #a52b3b;
+  --danger-surface: #fff1f2;
+  --font-sans: "Segoe UI", "Microsoft YaHei", sans-serif;
+  --font-display: "Bahnschrift", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Code", Consolas, monospace;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --section-gap: 32px;
+  --page-max: 1200px;
+}
