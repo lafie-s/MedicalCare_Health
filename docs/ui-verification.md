@@ -55,3 +55,7 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 ## F07a 增量验证（2026-09-08）
 
 使用生产前端及隔离告警 fixture，验证空记录、登记成功、计划状态、重叠 409 草稿保留、取消原因必填及历史保留、Escape 放弃确认。503 路由注入隐藏旧列表，移除注入后刷新恢复；注入服务窗口后确认维护标记出现并在结束后消失。原生 datetime-local 键盘分段可修改。检查 1440×960 及 390×844 截图，表单和列表无横向溢出。截图：output/playwright/maintenance-desktop.png、maintenance-mobile.png、maintenance-form-mobile.png。控制台仅预期未登录 401、重叠 409 与注入 503；无真实员工/生产接入结论。后端 53 项测试通过，覆盖权限、时间、重复请求与审计回滚。
+
+## F08b 审计页面验证
+
+隔离 fixture 真实查询与筛选空结果通过；注入 503 后旧数据清除，重试恢复；403 返回登录。分页注入验证下一页、上一页和刷新恢复；viewer 注入不显示审计区。检查 1440/390px、原生 select 展开与键盘、reduced-motion，无横向溢出。截图在 output/playwright/audit-desktop.png、audit-mobile.png、audit-filters-mobile.png、audit-select-open.png。生产环境尚未联调。
