@@ -19,6 +19,21 @@ function setup() {
   const payload = { idempotencyKey: randomUUID(), environmentId: "local", name: "聊天服务", owner: "运维组", targetId: "health", intervalSeconds: 30 };
   return { app, services, headers, payload, policy, setRole: (value: Grant["role"]) => { role = value; }, close: async () => { await app.close(); services.close(); sessions.close(); } };
 }
+
+test("health overview is environment-authorized and shares a consistent service snapshot", async (t) => {
+  const ctx = setup(); t.after(ctx.close);
+  const url = "/api/v1/health/overview?environmentId=local";
+  assert.equal((await ctx.app.inject(url)).statusCode, 401);
+  assert.equal((await ctx.app.inject({ url: "/api/v1/health/overview?environmentId=prod", headers: ctx.headers })).statusCode, 403);
+  await ctx.app.inject({ method: "POST", url: "/api/v1/services", headers: ctx.headers, payload: ctx.payload });
+  ctx.setRole("viewer");
+  const response = await ctx.app.inject({ url, headers: ctx.headers });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().overview.counts.unknown, 1);
+  assert.equal(response.json().asOf, response.json().items[0].health.asOf);
+  assert.equal(response.json().overview.asOf, response.json().asOf);
+  assert.ok(!response.body.includes("127.0.0.1:9999"));
+});
 test("service directory enforces environment scope and admin-only writes", async (t) => {
   const ctx = setup(); t.after(ctx.close);
   assert.equal((await ctx.app.inject("/api/v1/services?environmentId=local")).statusCode, 401);

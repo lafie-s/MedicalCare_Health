@@ -1,5 +1,11 @@
 # 界面验证记录
 
+## F04a 增量验证（2026-09-07）
+
+生产前端与隔离身份 fixture 验证空目录未知。浏览器路由注入正常、HTTP 503、过期和停用服务，四类计数均为 1，已知故障保留显示；键盘 Enter 通过关注清单跳到对应详情。注入查询 503 后旧汇总消失，重试恢复正常；环境切换保留 URL，403 权限撤销返回登录并清除概览。这些注入样本不属于真实 MedicalCareWeb 运行数据。
+
+检查 1440px 桌面及 390px 窄屏、reduced-motion：四列转两列，关注清单换行，无横向溢出。截图位于 `output/playwright/overview-desktop.png` 和 `overview-mobile.png`。本次 39 项后端测试及前后端构建/类型检查通过。
+
 日期：2026-09-07。测试对象为本平台 Next.js 页面和 Fastify API，使用隔离测试身份服务，不代表已完成 MedicalCareWeb 真实员工联调。
 
 ## 已执行

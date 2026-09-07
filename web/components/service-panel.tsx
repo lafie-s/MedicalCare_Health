@@ -3,10 +3,12 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { api, ApiError } from "./api";
 import { Button, Notice } from "./ui";
 import { Dialog } from "./dialog";
+import { HealthOverview } from "./health-overview";
+import { currentHealth, healthReasons as reasons } from "../../src/health-summary";
 
 type Health = { status: string; reason: string; latest: { startedAt: number; httpStatus: number | null; latencyMs: number | null; outcome: string } | null; availabilityPercent: number | null; samplesInWindow: number; asOf: number };
 export type Service = { id: string; name: string; owner: string; targetId: string; intervalSeconds: number; enabled: boolean; version: number; health: Health };
-type Directory = { items: Service[]; targets: { id: string; name: string }[]; limit: number; probingAvailable: boolean };
+type Directory = { asOf: number; items: Service[]; targets: { id: string; name: string }[]; limit: number; probingAvailable: boolean };
 export function ServicePanel({ environmentId, role, onUnauthorized }: { environmentId: string; role: string; onUnauthorized: () => void }) {
   const [data, setData] = useState<Directory | null>(null);
   const [error, setError] = useState("");
@@ -56,8 +58,9 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
   }
   return <section className="service-panel" aria-labelledby="services-title"><div className="panel-heading"><h2 id="services-title">服务目录</h2><div className="inline-actions"><Button onClick={() => void load()} busy={loading}>刷新服务</Button>{role === "admin" && <Button className="primary" disabled={!data?.targets.length || loading} onClick={() => { setMessage(""); setEdit("new"); }}>登记服务</Button>}</div></div>
     <div className="service-content">{message && <Notice>{message}</Notice>}{!toggle && error && <Notice error>{error}</Notice>}{loading ? <Notice>正在读取服务配置…</Notice> : data && <>
+      <HealthOverview items={data.items} now={now} asOf={data.asOf} />
       {role === "admin" && !data.targets.length && <Notice>当前环境没有获准探测的目标，请先由部署管理员配置目标白名单。</Notice>}
-      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div><ProbeInfo service={service} now={now} /><div className="inline-actions service-actions">{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
+      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id} id={`service-${service.id}`} tabIndex={-1}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div><ProbeInfo service={service} now={now} /><div className="inline-actions service-actions">{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
       <p className="muted service-count">共 {data.items.length} 个服务 · 每环境上限 {data.limit} 个</p>
     </>}</div>
     {edit && data && <ServiceForm key={edit === "new" ? "new" : edit.id} service={edit === "new" ? null : edit} targets={data.targets} environmentId={environmentId} onClose={() => setEdit(null)} onUnauthorized={() => auth.current()} onSaved={() => { setEdit(null); setMessage("服务配置已保存。"); void load(); }} />}
@@ -65,12 +68,10 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
   </section>;
 }
 
-const reasons: Record<string, string> = { disabled: "采集已停用", target_revoked: "目标授权已撤销", no_current_sample: "尚无当前配置的采样", stale: "数据已过期", interrupted: "采集被中断", success: "探测通过", http_error: "HTTP 响应异常", timeout: "探测超时", connection_error: "连接失败" };
 function ProbeInfo({ service, now }: { service: Service; now: number }) {
   const health = service.health;
   const sample = health.latest;
-  const expired = sample && now - sample.startedAt > service.intervalSeconds * 2000 + 5000;
-  const reason = expired && !["disabled", "target_revoked", "no_current_sample"].includes(health.reason) ? "stale" : health.reason;
+  const { reason } = currentHealth(service, now);
   const current = ["success", "http_error", "timeout", "connection_error"].includes(reason);
   const timestamp = sample ? new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(sample.startedAt) : "尚未采集";
   return <div className="probe-info"><div className={`probe-state ${current && reason !== "success" ? "probe-error" : ""}`}><strong>{reasons[reason] ?? "状态未知"}</strong>{!current && reason !== "disabled" && <span> · 状态未知</span>}</div><dl><div><dt>最近响应耗时</dt><dd>{current && sample?.latencyMs !== null && sample?.latencyMs !== undefined ? `${sample.latencyMs} ms` : "—"}</dd></div><div><dt>5 分钟探测成功率</dt><dd>{current && health.availabilityPercent !== null ? `${health.availabilityPercent}%` : "—"}<small> / {health.samplesInWindow} 个有效样本</small></dd></div><div><dt>最近采集时间 · 北京时间</dt><dd>{timestamp}</dd></div></dl>{sample?.httpStatus && current && <p>HTTP {sample.httpStatus}</p>}<p>耗时统计到收到响应头；不代表完整业务请求耗时。</p></div>;

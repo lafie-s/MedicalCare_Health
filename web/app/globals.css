@@ -87,3 +87,13 @@ dialog::backdrop { background: rgb(20 43 73 / .55); } dialog h2 { font-size: 24p
 .probe-state { color: var(--ink); } .probe-error { color: var(--danger); }
 .probe-info dl { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 18px; margin: 14px 0; } .probe-info dt { color: var(--muted); } .probe-info dd { margin: 5px 0 0; font-family: var(--font-mono); font-size: 16px; } .probe-info dd small { font-family: var(--font-sans); font-size: 12px; color: var(--muted); } .probe-info p { color: var(--muted); font-size: 12px; }
 @media (max-width: 840px) { .probe-info dl { grid-template-columns: 1fr; gap: 12px; } }
+.health-overview { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; }
+.overview-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; align-items: center; }
+.overview-heading p, .overview-meta { color: var(--muted); font-size: 12px; margin-top: 10px; }
+.health-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+.health-counts > div { border-left: 3px solid var(--border); padding-left: 16px; } .health-counts dt { color: var(--muted); font-size: 13px; } .health-counts dd { margin: 6px 0 0; font: 28px var(--font-mono); }
+.health-overview h3 { margin-top: 24px; font-size: 16px; } .health-overview h3 + p { margin-top: 12px; font-size: 14px; }
+.attention-list { padding: 0; margin: 12px 0; } .attention-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 8px 0; overflow-wrap: anywhere; }
+.attention-list a { color: var(--primary); cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; } .attention-list a:hover { color: var(--primary-hover); } .attention-list a:active { color: var(--ink); } .attention-list a:focus-visible, .service-list > li:focus { outline: 3px solid var(--primary); outline-offset: 3px; } .attention-list span { color: var(--muted); font-size: 13px; }
+.service-list > li { scroll-margin-top: 24px; }
+@media (max-width: 600px) { .health-counts { grid-template-columns: repeat(2, 1fr); } .attention-list li { display: block; } .attention-list span { display: block; } }

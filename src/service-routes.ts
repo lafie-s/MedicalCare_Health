@@ -3,17 +3,20 @@ import { z } from "zod";
 import type { AccessPolicy, Grant } from "./access-policy.js";
 import { ServiceConflict, ServiceLimit, type ServiceStore } from "./service-store.js";
 import { ProbeRejected, serviceHealth, type ProbeRunner } from "./probe.js";
+import { summarizeHealth } from "./health-summary.js";
 
 export type Authorization = (request: FastifyRequest, reply: FastifyReply) => Promise<{ principal: { userId: string }; grant: Grant; policy: AccessPolicy } | null>;
 const input = z.object({ name: z.string().trim().min(1).max(80), owner: z.string().trim().min(1).max(80), targetId: z.string().min(1).max(64), intervalSeconds: z.union([z.literal(30), z.literal(60), z.literal(300)]) });
 export async function registerServiceRoutes(app: FastifyInstance, store: ServiceStore, authorize: Authorization, runner?: ProbeRunner) {
   const fail = (request: FastifyRequest, reply: FastifyReply, status: number, code: string, message: string) => reply.code(status).send({ code, message, requestId: request.id });
-  app.get<{ Querystring: { environmentId?: string } }>("/api/v1/services", async (request, reply) => {
+  for (const path of ["/api/v1/services", "/api/v1/health/overview"]) app.get<{ Querystring: { environmentId?: string } }>(path, async (request, reply) => {
     const context = await authorize(request, reply); if (!context) return;
     const environmentId = request.query.environmentId;
     if (!environmentId || !context.grant.environmentIds.includes(environmentId)) return fail(request, reply, 403, "FORBIDDEN", "无权访问该环境");
     const targets = (context.policy.probeTargets ?? []).filter((target) => target.environmentId === environmentId);
-    return { items: store.list(environmentId).map((service) => ({ ...service, health: serviceHealth(service, targets.find((target) => target.id === service.targetId), store) })), targets: targets.map(({ id, name }) => ({ id, name })), limit: 100, probingAvailable: Boolean(runner) };
+    const asOf = Date.now();
+    const items = store.list(environmentId).map((service) => ({ ...service, health: serviceHealth(service, targets.find((target) => target.id === service.targetId), store, asOf) }));
+    return { items, overview: summarizeHealth(items, asOf), asOf, targets: targets.map(({ id, name }) => ({ id, name })), limit: 100, probingAvailable: Boolean(runner) };
   });
   app.post("/api/v1/services", async (request, reply) => {
     const context = await authorize(request, reply); if (!context) return;

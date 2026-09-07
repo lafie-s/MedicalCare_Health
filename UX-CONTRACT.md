@@ -9,6 +9,7 @@
 | Dialog | web/components/dialog.tsx | 当前约定 | form / confirmation | 焦点、Escape 和放弃修改 |
 | Scrollbar | web/app/globals.css | DESIGN.md | 全局标准与引擎回退 | 浏览器计算样式 |
 | Feedback | web/components/ui.tsx | 当前约定 | error / status | 浏览器 live region |
+| Health overview | web/components/health-overview.tsx | src/health-summary.ts、docs/service-monitoring.md | HTTP | 状态分布、未知/过期、键盘详情链接 |
 
 登录成功留在工作台，查询身份与授权环境；密码不持久化，失败保留邮箱、清空密码并聚焦。没有注册、密码重置或创建管理员入口，员工账号维护沿用 MedicalCareWeb。
 
@@ -25,3 +26,5 @@
 服务启停会改变监测覆盖，使用同一 Dialog 确认并说明历史保留；停用不删除数据。表单取消与 Escape 在有修改时先询问是否放弃，关闭页面使用原生 beforeunload 生命周期提示。对话框开启时暂停页面可见性触发的全页刷新，服务端仍逐请求鉴权。会话到期按安全规则清除表单，不持久化未保存配置。
 
 默认 zh-CN 与 Asia/Shanghai，技术品牌名保持原名；日期使用 Intl。界面目标 WCAG 2.2 AA，首错焦点、按钮键盘操作、loading live region、窄屏和减少动画状态必须验证。登录表单无额外导航，密码不可恢复，不做持久化草稿。
+
+HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏汇总，失败时不沿用旧计数。状态与明细共用纯规则，每秒判定过期；注意清单异常优先，服务名称为原生锚点链接，目标服务可接受焦点。计数使用语义 dl，桌面四列、窄屏两列，异常文字与数字均有文字语义，不只靠颜色。环境选择继续保存在 URL，概览无独立筛选器。
