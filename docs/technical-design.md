@@ -190,3 +190,5 @@ F08a（2026-09-08）新增 GET /api/v1/audit，管理员按授权环境、操作
 F08b 已接入管理员操作审计页面，支持类型、时间范围、分页及 URL 恢复，复用当前界面组件。权限仍由 F08a 服务端独立执行。审计保留和归档验收待完成。
 
 F09a 提供本地一致性备份及新目录恢复工具，含完整性检查、SHA-256 清单和恢复会话清除。详见 docs/backup-recovery.md。未执行真实环境部署，备份保留、异地保存与 RPO/RTO 待验收。
+
+备份范围纠正（2026-09-08）：MedicalCareWeb 仓库实际声明 PostgreSQL 17 + Prisma 6.12.0、Redis 7.4（AOF），依据 chat-service/prisma/schema.prisma、chat-service/package.json 和 deploy/compose.yaml。本平台 SQLite 是独立本地状态实现，F09a 仅验证该状态库备份。MedicalCareWeb PostgreSQL/Redis 备份及恢复尚未接入，须单独完成方案与验收；不能将 F09a 作为业务系统数据保护完成依据。

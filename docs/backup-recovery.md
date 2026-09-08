@@ -34,3 +34,9 @@ npm run db:snapshot -- restore data/backup-20260908 data/restore-20260908
 ## 本次验证
 
 2026-09-08：56 项后端测试、类型检查、构建与启动 smoke 通过。新增测试在连接仍打开的 WAL 数据库备份，恢复验证服务/维护内容、会话清除及恢复审计，并检查源库会话未变、已有目录拒绝、损坏校验拒绝和源文件缺失拒绝。命令行对隔离 fixture 完成 backup/restore，两次均返回 verified。演练文件位于忽略的 output/backup-drill，不包含真实凭据。未进行生产切换或完整上线验收。
+
+## 范围纠正：与 MedicalCareWeb 业务备份分开
+
+2026-09-08 只读核实 F:/MedicalCareWeb/chat-service/prisma/schema.prisma：provider 为 postgresql；deploy/compose.yaml 使用 postgres:17-alpine、redis:7.4-alpine，Redis 启用 AOF，二者均配置持久卷；chat-service/package.json 使用 Prisma 6.12.0。以上为仓库声明，尚未连接实际部署核实运行版本。
+
+本文件及 db:snapshot 命令仅处理 MedicalCare_Health 自身 SQLite 状态库，不支持 PostgreSQL 或 Redis，不代表 MedicalCareWeb 业务数据备份已完成。后续业务系统备份应按 PostgreSQL 及 Redis 的实际职责和持久化策略单独设计，核实备份目标、受控执行接口、权限、存储位置与隔离恢复环境；不得直接复制运行中的数据卷作为已验证备份。当前尚未实现或执行业务库备份，也未进行本平台数据库迁移。

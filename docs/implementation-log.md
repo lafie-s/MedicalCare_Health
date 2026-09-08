@@ -116,3 +116,7 @@ F06a 提交 `8952c1a` 已成功推送。
 新增 npm run db:snapshot -- backup/restore 命令。使用 VACUUM INTO 一致性快照、完整性检查和 SHA-256 清单；拒绝覆盖，恢复至新目录并清除旧会话、记录系统审计。同步操作手册和甘特图。
 
 验证：npm run check 56 项测试全部通过，类型、构建、启动 smoke 通过。运行中的 WAL 备份、业务恢复、会话清除与源库不变、损坏校验及目标冲突拒绝已测试。构建后 CLI 使用隔离数据完成 backup/restore，均返回 verified。没有真实环境切换，前端未修改。提交与推送结果见当次交付。
+
+## 业务存储与备份范围纠正（2026-09-08）
+
+响应用户指出的数据库差异，只读检查 MedicalCareWeb Prisma schema、包版本和部署 Compose，确认仓库声明 PostgreSQL 17、Prisma 6.12.0、Redis 7.4 AOF。F09a 提交 2fd89e5 已推送，但仅覆盖本平台 SQLite。已修正技术文档、备份手册及计划，明确业务备份未实现。未访问数据库、读取真实凭据或改动 MedicalCareWeb。本次仅文档，验证为源码交叉核对和 git diff --check。
