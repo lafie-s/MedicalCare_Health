@@ -1,0 +1,36 @@
+services:
+  health-api:
+    build:
+      context: ..
+      target: preview
+      args:
+        NEXT_PUBLIC_BASE_PATH: /MedicalCareHealth
+        NEXT_PUBLIC_PREVIEW: "1"
+    environment:
+      PREVIEW_ORIGIN: http://124.221.179.162
+    restart: unless-stopped
+    init: true
+    networks: [isolated]
+  health-web:
+    environment:
+      NEXT_PUBLIC_BASE_PATH: /MedicalCareHealth
+      NEXT_PUBLIC_PREVIEW: "1"
+      HEALTH_API_ORIGIN: http://health-api:4310
+    build:
+      context: ..
+      target: web
+      args:
+        NEXT_PUBLIC_BASE_PATH: /MedicalCareHealth
+        NEXT_PUBLIC_PREVIEW: "1"
+    restart: unless-stopped
+    init: true
+    networks:
+      isolated:
+      edge:
+        aliases: [medicalcare-health-preview]
+networks:
+  isolated:
+    internal: true
+  edge:
+    external: true
+    name: shengren_default

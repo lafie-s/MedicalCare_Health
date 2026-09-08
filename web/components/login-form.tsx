@@ -24,6 +24,7 @@ export function LoginForm({ message, onSuccess }: { message: string; onSuccess: 
     catch (err) { setError(err instanceof Error ? err.message : "登录失败，请重试"); setPassword(""); passwordRef.current?.focus(); }
     finally { pending.current = false; setBusy(false); }
   }
+  if (process.env.NEXT_PUBLIC_PREVIEW === "1") return <main className="standalone"><Brand /><h1>运维平台演示</h1><Notice>隔离演示环境，仅含示例数据。不要输入真实账号或业务信息。数据会在重启后重置。</Notice>{error && <Notice error>{error}</Notice>}<Button className="primary" busy={busy} onClick={async () => { if (pending.current) return; pending.current = true; setBusy(true); try { await api("/auth/login", { method: "POST", body: JSON.stringify({ email: "demo@example.test", password: "preview-only" }) }); onSuccess(); } catch (err) { setError(err instanceof Error ? err.message : "演示暂不可用"); } finally { pending.current = false; setBusy(false); } }}>进入演示工作台</Button></main>;
   return <main className="login-layout">
     <section className="login-context"><Brand /><div className="login-intro"><p className="eyebrow">MedicalCareWeb · 运行维护</p><h1>每个环境，<br />都有清晰的运行视野。</h1><p>从服务可用性到关键依赖，<br />让运行状态与维护记录有据可查。</p><div className="service-map" aria-label="监测范围示意"><span>服务可用性</span><span>接口性能</span><span>关键依赖</span></div><p className="map-caption">监测范围示意 · 非实时数据</p></div><p className="context-footer">运行指标监测及维护平台</p></section>
     <section className="login-main" aria-labelledby="login-title"><div className="login-card"><p className="eyebrow">员工访问</p><h2 id="login-title">登录运维工作台</h2><p className="muted">使用 MedicalCareWeb 员工账号继续。</p>

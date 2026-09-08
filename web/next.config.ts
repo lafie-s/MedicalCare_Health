@@ -4,6 +4,7 @@ import path from "node:path";
 const apiOrigin = process.env.HEALTH_API_ORIGIN ?? "http://127.0.0.1:4310";
 const config: NextConfig = {
   poweredByHeader: false,
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "",
   // Include the repository's pure health rules shared with the API.
   turbopack: { root: path.resolve(process.cwd(), "..") },
   async rewrites() { return [{ source: "/api/v1/:path*", destination: `${apiOrigin}/api/v1/:path*` }]; },

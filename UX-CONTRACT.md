@@ -42,3 +42,5 @@ HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏
 维护窗口由 MaintenanceDialog/MaintenanceForm 维护，复用 Dialog 模态与焦点恢复。日期使用浏览器原生 datetime-local（native owner），统一解析北京时间。表单 noValidate，应用负责首错聚焦、错误、等待、重试幂等与修改放弃确认，取消需原因。每页 20 条，列表为带时间的手动快照；异常清除旧数据。只读用户仅查询，401/403 清除受保护页面。
 
 AuditPanel 复用 Button、Notice、原生 Select/Listbox 和 alert-center 列表样式，仅管理员渲染。筛选与分页写 URL，切环境重置；固定查询结束时间用于翻页，手动刷新回第一页并更新时间范围。加载/错误隐藏旧记录，旧查询取消；401/403 清除受保护页面。审计为手动快照，不后台刷新。
+
+NEXT_PUBLIC_PREVIEW 仅构建隔离演示界面：LoginForm 提供固定演示身份入口，不采集真实凭据。生产登录不变。NEXT_PUBLIC_BASE_PATH 统一 Next 路由和同源 API 子路径。

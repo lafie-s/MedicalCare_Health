@@ -1,0 +1,49 @@
+services:
+  health-api:
+    build:
+      context: ..
+      target: api
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4310"
+      ACCESS_POLICY_PATH: /app/config/access-policy.json
+      STATE_DB_PATH: /app/data/health.sqlite
+    volumes:
+      - health_state:/app/data
+      - ./access-policy.json:/app/config/access-policy.json:ro
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4310/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [private]
+  health-web:
+    environment:
+      HEALTH_API_ORIGIN: http://health-api:4310
+    build:
+      context: ..
+      target: web
+      args:
+        HEALTH_API_ORIGIN: http://health-api:4310
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:4321:4320"
+    depends_on:
+      health-api:
+        condition: service_healthy
+    networks:
+      private:
+      edge:
+        aliases: [medicalcare-health-web]
+networks:
+  private:
+  edge:
+    external: true
+    name: ${HEALTH_EDGE_NETWORK:-shengren_default}
+volumes:
+  health_state:

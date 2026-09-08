@@ -1,0 +1,15 @@
+.git
+node_modules
+web/node_modules
+web/.next
+dist
+data
+output
+.playwright-cli
+.env
+.env.*
+**/.env
+**/.env.*
+*.log
+**/*.tsbuildinfo
+deploy/access-policy.json

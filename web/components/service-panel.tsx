@@ -1,4 +1,5 @@
 "use client";
+import { requestId } from "./request-id";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { Button, Notice } from "./ui";
@@ -47,7 +48,7 @@ export function ServicePanel({ environmentId, role, onUnauthorized }: { environm
   async function probe(service: Service) {
     if (probePending.current) return;
     probePending.current = true; setProbing(service.id); setError(""); setMessage("");
-    const key = probeKeys.current.get(service.id) ?? crypto.randomUUID(); probeKeys.current.set(service.id, key);
+    const key = probeKeys.current.get(service.id) ?? requestId(); probeKeys.current.set(service.id, key);
     try {
       const result = await api<{ outcome: string }>(`/services/${service.id}/probe`, { method: "POST", headers: { "Idempotency-Key": key } });
       if (result.outcome !== "running") probeKeys.current.delete(service.id);
@@ -94,7 +95,7 @@ function ServiceForm({ service, targets, environmentId, onClose, onSaved, onUnau
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState("");
   const [discard, setDiscard] = useState(false);
-  const id = useRef(crypto.randomUUID());
+  const id = useRef(requestId());
   const form = useRef<HTMLFormElement>(null);
   const pending = useRef(false);
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);

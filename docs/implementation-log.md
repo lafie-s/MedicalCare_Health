@@ -126,3 +126,9 @@ F06a 提交 `8952c1a` 已成功推送。
 范围纠正提交 7c1837d 已补推成功。只读核实 PostgreSQL 部署固定目标及 Redis presence 用途；实现 Docker pg_dump custom 导出、pg_restore --list 归档检查、SHA-256 清单、超时及不覆盖保护。没有访问真实数据库。
 
 验证：npm run check 57 项测试、类型、构建、启动 smoke 通过。新增测试使用模拟 runner，验证二进制传输、固定参数及失败不发布清单；不能替代真实 PostgreSQL 恢复。当前机器无 Docker/PG 客户端，真实导出恢复待授权环境。文档明确 Redis 重建与 AOF 方案边界。
+
+## F09c 腾讯云演示部署（2026-09-08）
+
+已获用户授权连接腾讯云，凭据只在本机受控读取、不输出或入库。独立目录 /opt/medicalcare-health-preview、Compose 项目 medicalcare-health-preview，无真实数据卷或数据库接入。保留原 Nginx 配置备份，增加 /MedicalCareHealth 路由，nginx -t 后 reload。实际地址 http://124.221.179.162/MedicalCareHealth。
+
+验证：57 项测试、后端构建/启动、前端构建/类型/令牌检查通过；服务器 Docker 构建和启动成功，严格 UI 审计 0 问题。公网浏览器一键登录、维护记录登记取消、刷新保持会话、退出和 390px 无横向溢出通过。修复子路径 Cookie 映射及 HTTP randomUUID 兼容。旧 MedicalCare/en 返回 200。正式身份/真实监控/备份执行不在演示中，演示数据重启重置。

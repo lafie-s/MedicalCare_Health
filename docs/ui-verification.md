@@ -59,3 +59,7 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 ## F08b 审计页面验证
 
 隔离 fixture 真实查询与筛选空结果通过；注入 503 后旧数据清除，重试恢复；403 返回登录。分页注入验证下一页、上一页和刷新恢复；viewer 注入不显示审计区。检查 1440/390px、原生 select 展开与键盘、reduced-motion，无横向溢出。截图在 output/playwright/audit-desktop.png、audit-mobile.png、audit-filters-mobile.png、audit-select-open.png。生产环境尚未联调。
+
+## 腾讯云公开隔离演示验证
+
+2026-09-08：实际公网 /MedicalCareHealth 经 Nginx 代理返回演示入口，无真实密码输入框。一键进入、刷新会话保持、操作审计加载、维护窗口登记/取消、退出回演示入口通过。1440×960 与 390×844 页面截图位于 output/playwright/cloud-health-desktop.png 和 cloud-health-mobile.png。控制台预期未登录 401；此验收为合成数据演示，不是生产指标验收。

@@ -52,3 +52,5 @@ npm run dev
 已提供单实例数据库备份与新目录恢复命令，详见 [备份与恢复手册](docs/backup-recovery.md)。先构建后执行 npm run db:snapshot，正式切换需按手册停机核对。
 
 MedicalCareWeb PostgreSQL 业务备份使用独立命令 backup:medicalcare；与本平台 SQLite db:snapshot 区分。详见 [业务备份与恢复接入](docs/medicalcare-business-backup.md)，真实恢复演练尚未验收。
+
+腾讯云隔离演示：[打开工作台](http://124.221.179.162/MedicalCareHealth)。点击进入演示工作台，仅含示例数据，重启重置。部署模板与说明见 [部署文档](deploy/README.md)。

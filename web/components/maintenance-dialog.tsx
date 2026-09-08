@@ -1,4 +1,5 @@
 "use client";
+import { requestId } from "./request-id";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { MaintenanceWindow } from "../../src/maintenance-store";
 import { api, ApiError } from "./api";
@@ -25,7 +26,7 @@ export function MaintenanceDialog({ service, role, onClose, onUnauthorized }: { 
 function MaintenanceForm({ service, window, onBack, onSaved, onUnauthorized }: { service: Service; window: MaintenanceWindow | null; onBack: () => void; onSaved: () => void; onUnauthorized: () => void }) {
   const [initial] = useState(() => ({ startsAt: localValue(Date.now() + 300_000), endsAt: localValue(Date.now() + 3900_000), owner: service.owner, reason: "" }));
   const [draft, setDraft] = useState(initial); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [invalid, setInvalid] = useState(""); const [discard, setDiscard] = useState(false);
-  const id = useRef(crypto.randomUUID()); const pending = useRef(false); const form = useRef<HTMLFormElement>(null);
+  const id = useRef(requestId()); const pending = useRef(false); const form = useRef<HTMLFormElement>(null);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
   useEffect(() => { if (!dirty) return; const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; }; globalThis.window.addEventListener("beforeunload", guard); return () => globalThis.window.removeEventListener("beforeunload", guard); }, [dirty]);
   const cancel = () => { if (pending.current) return; if (dirty) setDiscard(true); else onBack(); };
