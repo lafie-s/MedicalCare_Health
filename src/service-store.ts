@@ -3,6 +3,7 @@ import type { ProbeResult, ProbeOutcome } from "./probe.js";
 import { AlertStore } from "./alert-store.js";
 import { MaintenanceStore } from "./maintenance-store.js";
 import { AuditStore } from "./audit-store.js";
+import { ReleaseStore } from "./release-store.js";
 
 export interface ServiceInput { name: string; owner: string; targetId: string; intervalSeconds: number }
 export interface Service extends ServiceInput { id: string; environmentId: string; enabled: boolean; version: number; createdAt: number }
@@ -15,6 +16,7 @@ export class ServiceStore {
   readonly alerts: AlertStore;
   readonly maintenance: MaintenanceStore;
   readonly auditLog: AuditStore;
+  readonly releases: ReleaseStore;
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;
@@ -26,6 +28,7 @@ export class ServiceStore {
     this.alerts = new AlertStore(this.db);
     this.maintenance = new MaintenanceStore(this.db);
     this.auditLog = new AuditStore(this.db);
+    this.releases = new ReleaseStore(this.db);
   }
   private map(row: Record<string, unknown>): Service {
     return { id: String(row.id), environmentId: String(row.environment_id), name: String(row.name), owner: String(row.owner), targetId: String(row.target_id), intervalSeconds: Number(row.interval_seconds), enabled: Boolean(row.enabled), version: Number(row.version), createdAt: Number(row.created_at) };

@@ -18,3 +18,5 @@
 preview.yaml 是独立的公开演示配置，使用 /MedicalCareHealth 子路径、独立 preview-server 入口和内存示例数据。公开演示身份只访问这份示例数据，不转发真实登录。后端仅加入 internal 网络，无持久卷、无真实身份服务、无 ProbeRunner、无业务数据库或 Docker socket。页面显示演示标记，一键进入，重启重置。此入口不能用于生产员工或真实数据。正式部署使用 compose.yaml 与 HTTPS 配置，不设置 NEXT_PUBLIC_PREVIEW。
 
 2026-09-08 隔离预览已实际部署并完成公网浏览器验证：http://124.221.179.162/MedicalCareHealth。使用 nginx-preview.conf 中 Cookie Path 映射，nginx 配置位于宿主机 /opt/shengren/deploy/nginx.conf，变更前已保留备份。容器重建导致地址变化时先验证代理可达性，必要时 nginx -t 后 reload。正式 Compose 仅完成模板准备，未进行真实身份部署验收。
+
+网站版本更新演示已接入，生产 RELEASE_CONFIG_PATH 配置见 docs/website-releases.md。不得给公开 preview 容器挂载 Docker socket 或真实部署目录。公开 HTTP 演示不执行真实更新。

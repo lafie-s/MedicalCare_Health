@@ -44,3 +44,5 @@ HTTP 概览复用服务目录查询、刷新和失败状态，加载期间隐藏
 AuditPanel 复用 Button、Notice、原生 Select/Listbox 和 alert-center 列表样式，仅管理员渲染。筛选与分页写 URL，切环境重置；固定查询结束时间用于翻页，手动刷新回第一页并更新时间范围。加载/错误隐藏旧记录，旧查询取消；401/403 清除受保护页面。审计为手动快照，不后台刷新。
 
 NEXT_PUBLIC_PREVIEW 仅构建隔离演示界面：LoginForm 提供固定演示身份入口，不采集真实凭据。生产登录不变。NEXT_PUBLIC_BASE_PATH 统一 Next 路由和同源 API 子路径。
+
+ReleaseDialog 复用 Dialog、Button、Notice、原生 Select/Listbox 和维护表单输入。批准版本由服务端提供；管理员确认原因/备份后提交。每 5 秒查询状态，确认表单期间暂停刷新，首错聚焦，关闭未提交草稿询问放弃。已提交任务不随弹窗关闭取消。权限失效清除，失败隐藏旧部署状态；状态未知禁用新任务，仅提供显式停止确认后的核对入口。

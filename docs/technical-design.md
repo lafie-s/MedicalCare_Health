@@ -196,3 +196,5 @@ F09a 提供本地一致性备份及新目录恢复工具，含完整性检查、
 F09b 按 MedicalCareWeb 实际 PostgreSQL 部署实现 backup:medicalcare 本地命令，固定容器/数据库、二进制导出、目录检查、哈希清单及失败保护。清单明确 restoreVerified=false；不是平台 Web 维护动作。Redis 源码当前只用于 300 秒 presence，现场用途待核实。详见 docs/medicalcare-business-backup.md，真实恢复与 Redis 备份未验收。
 
 F09c 新增 Docker 多阶段构建、正式 Compose 模板及独立隔离演示 Compose。腾讯云仅 HTTP 入口时采用 preview-server 内存样例、公开演示身份、无 ProbeRunner 和 internal 后端网络，生产 server.ts 鉴权不变。Next basePath 与 API 请求同步，Nginx 映射 Cookie Path。生产配置仍需 HTTPS 与真实授权。
+
+F07b 网站版本更新采用批准目录、不可变镜像、管理员确认、幂等后台任务和单服务互斥锁。执行器固定切换 MedicalCareWeb 网站/chat 镜像并核对健康，回退限最近成功任务的原版本；不自动执行数据库迁移。发布结果不确定时锁定并人工确认执行停止后核对。审计与任务同事务，重启不重试。接口与正式接入边界见 docs/website-releases.md。公开演示只修改内存版本。

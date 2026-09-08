@@ -12,6 +12,8 @@ import { registerAlertRoutes } from "./alert-routes.js";
 import { registerMaintenanceRoutes } from "./maintenance-routes.js";
 import { registerAuditRoutes } from "./audit-routes.js";
 import type { ProbeRunner } from "./probe.js";
+import type { ReleaseManager } from "./release-manager.js";
+import { registerReleaseRoutes } from "./release-routes.js";
 
 export interface AuthDependencies {
   identity: IdentityProvider;
@@ -21,6 +23,7 @@ export interface AuthDependencies {
   secureCookie: boolean;
   services?: ServiceStore;
   probeRunner?: ProbeRunner;
+  releaseManager?: ReleaseManager;
 }
 const COOKIE = "mc_health_session";
 
@@ -119,6 +122,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
   if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
   if (deps.services) await registerMaintenanceRoutes(app, deps.services, authorize);
   if (deps.services) await registerAuditRoutes(app, deps.services, authorize);
+  if (deps.services) await registerReleaseRoutes(app, deps.services, authorize, deps.releaseManager);
   app.get("/api/v1/environments", async (request, reply) => {
     const context = await authorize(request, reply);
     if (!context) return;

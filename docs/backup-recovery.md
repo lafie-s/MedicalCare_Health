@@ -40,3 +40,5 @@ npm run db:snapshot -- restore data/backup-20260908 data/restore-20260908
 2026-09-08 只读核实 F:/MedicalCareWeb/chat-service/prisma/schema.prisma：provider 为 postgresql；deploy/compose.yaml 使用 postgres:17-alpine、redis:7.4-alpine，Redis 启用 AOF，二者均配置持久卷；chat-service/package.json 使用 Prisma 6.12.0。以上为仓库声明，尚未连接实际部署核实运行版本。
 
 本文件及 db:snapshot 命令仅处理 MedicalCare_Health 自身 SQLite 状态库，不支持 PostgreSQL 或 Redis，不代表 MedicalCareWeb 业务数据备份已完成。后续业务系统备份应按 PostgreSQL 及 Redis 的实际职责和持久化策略单独设计，核实备份目标、受控执行接口、权限、存储位置与隔离恢复环境；不得直接复制运行中的数据卷作为已验证备份。当前尚未实现或执行业务库备份，也未进行本平台数据库迁移。
+
+版本更新任务表 release_tasks 纳入快照（兼容旧快照中无此表）；恢复后若含执行中任务，平台启动时标为结果未知并锁定，不自动重新部署。数据库恢复不意味着网站镜像已同步回退，必须单独核对。

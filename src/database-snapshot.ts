@@ -9,7 +9,9 @@ async function digest(path: string) { const hash = createHash("sha256"); for awa
 function inspect(db: DatabaseSync) {
   const check = db.prepare("PRAGMA integrity_check").all();
   if (check.length !== 1 || check[0]!.integrity_check !== "ok") throw new Error("Database integrity check failed");
-  return Object.fromEntries(tables.map((name) => [name, Number(db.prepare(`SELECT COUNT(*) AS count FROM ${name}`).get()!.count)]));
+  const counts = Object.fromEntries(tables.map((name) => [name, Number(db.prepare(`SELECT COUNT(*) AS count FROM ${name}`).get()!.count)]));
+  if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='release_tasks'").get()) counts.release_tasks = Number(db.prepare("SELECT COUNT(*) AS count FROM release_tasks").get()!.count);
+  return counts;
 }
 async function sync(path: string) { const file = await open(path, "r+"); try { await file.sync(); } finally { await file.close(); } }
 

@@ -63,3 +63,7 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 ## 腾讯云公开隔离演示验证
 
 2026-09-08：实际公网 /MedicalCareHealth 经 Nginx 代理返回演示入口，无真实密码输入框。一键进入、刷新会话保持、操作审计加载、维护窗口登记/取消、退出回演示入口通过。1440×960 与 390×844 页面截图位于 output/playwright/cloud-health-desktop.png 和 cloud-health-mobile.png。控制台预期未登录 401；此验收为合成数据演示，不是生产指标验收。
+
+## F07b 网站版本更新验证
+
+腾讯云隔离演示：版本选择、批准说明、二次确认、必填首错、执行中及成功记录、回退后当前版本恢复、刷新保留历史通过。注入 503 隐藏旧状态，重试恢复；只读身份无执行按钮；未提交草稿 Escape 需放弃确认。原生 select 展开、1440×960 与 390×844 弹窗检查通过。截图 output/playwright/release-confirm.png、release-history.png、release-mobile.png、release-select-open.png。当前真实发布执行器尚未验收。
