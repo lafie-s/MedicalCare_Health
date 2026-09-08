@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "smoke": "node scripts/smoke.mjs",
+    "db:snapshot": "node scripts/database-snapshot.mjs",
     "check": "npm run typecheck && npm test && npm run build && npm run smoke"
   },
   "dependencies": {
