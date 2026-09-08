@@ -15,7 +15,10 @@ import type { ProbeRunner } from "./probe.js";
 import type { ReleaseManager } from "./release-manager.js";
 import { registerReleaseRoutes } from "./release-routes.js";
 
+import { registerAccessRoutes, type MaintenanceGate } from "./maintenance-access-routes.js";
+
 export interface AuthDependencies {
+  maintenanceGate?: MaintenanceGate;
   identity: IdentityProvider;
   store: SessionStore;
   policy: () => Promise<AccessPolicy>;
@@ -122,6 +125,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
   if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
   if (deps.services) await registerMaintenanceRoutes(app, deps.services, authorize);
   if (deps.services) await registerAuditRoutes(app, deps.services, authorize);
+  if (deps.services) await registerAccessRoutes(app, deps.services, authorize, deps.maintenanceGate);
   if (deps.services) await registerReleaseRoutes(app, deps.services, authorize, deps.releaseManager);
   app.get("/api/v1/environments", async (request, reply) => {
     const context = await authorize(request, reply);

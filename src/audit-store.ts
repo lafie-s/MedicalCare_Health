@@ -10,7 +10,7 @@ const scoped = `WITH parsed AS (
 ), scoped AS (
   SELECT a.id,a.actor,a.created_at,a.operation,s.id AS service_id,s.name AS service_name
   FROM resources a JOIN services s ON s.id = CASE
-    WHEN a.operation IN ('service.created','service.updated','probe.started','alert.rule_saved','release.started','release.succeeded','release.failed','release.unknown') THEN a.resource_id
+    WHEN a.operation IN ('maintenance.access_saved','service.created','service.updated','probe.started','alert.rule_saved','release.started','release.succeeded','release.failed','release.unknown') THEN a.resource_id
     WHEN a.operation='probe.finished' THEN (SELECT service_id FROM probe_runs WHERE id=a.resource_id)
     WHEN a.operation IN ('alert.fired','alert.recovered','alert.terminated','alert.acknowledge','alert.close') THEN (SELECT service_id FROM alert_events WHERE id=a.resource_id)
     WHEN a.operation IN ('maintenance.created','maintenance.canceled') THEN (SELECT service_id FROM maintenance_windows WHERE id=a.resource_id)

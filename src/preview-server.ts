@@ -20,7 +20,8 @@ let currentRelease = releases[0]!.id;
 const releaseManager = new ReleaseManager(service.id, releases, "demo", services.releases, { current: async () => ({ releaseId: currentRelease, healthy: true }), deploy: async (release) => { await new Promise((resolve) => setTimeout(resolve, 1500)); currentRelease = release.id; } });
 services.alerts.saveRule(service.id, { enabled: true, failureCount: 2, recoveryCount: 2, severity: "warning" }, 0, "demo", "demo", start);
 for (let i = 1; i <= 4; i++) { const id = randomUUID(); const at = start + i * 30_000; services.claimProbe(service, id, targetFingerprint(target), "demo", "demo", at); services.finishProbe(id, { outcome: "timeout", httpStatus: null, latencyMs: null }, at + 1); }
-const app = buildApp({ store: sessions, services, releaseManager, policy: async () => policy, origin, secureCookie: origin.startsWith("https:"), identity: {
+const maintenanceGate = process.env.MAINTENANCE_GATE_KEY ? { serviceId: service.id, token: process.env.MAINTENANCE_GATE_KEY, mode: "demo" as const } : undefined;
+const app = buildApp({ ...(maintenanceGate ? { maintenanceGate } : {}), store: sessions, services, releaseManager, policy: async () => policy, origin, secureCookie: origin.startsWith("https:"), identity: {
   async ready() { return true; },
   async login(email, password) { return email === "demo@example.test" && password === "preview-only" ? "demo-token" : null; },
   async verify(token) { return token === "demo-token" ? { userId: "demo", displayName: "演示管理员", role: "ADMIN" } : null; },

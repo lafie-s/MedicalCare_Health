@@ -8,6 +8,7 @@ services:
         NEXT_PUBLIC_PREVIEW: "1"
     environment:
       PREVIEW_ORIGIN: http://124.221.179.162
+      MAINTENANCE_GATE_KEY: ${MAINTENANCE_GATE_KEY:?Set maintenance gateway secret in deployment environment}
     restart: unless-stopped
     init: true
     networks: [isolated]
@@ -28,6 +29,21 @@ services:
       isolated:
       edge:
         aliases: [medicalcare-health-preview]
+  maintenance-preview:
+    depends_on: [health-api]
+    image: ${MAINTENANCE_NGINX_IMAGE:-nginx:stable-alpine}
+    environment:
+      MAINTENANCE_GATE_KEY: ${MAINTENANCE_GATE_KEY:?Set maintenance gateway secret}
+      TRUSTED_INGRESS_IP: ${TRUSTED_INGRESS_IP:?Set verified edge proxy address}
+    volumes:
+      - ./maintenance/preview.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./maintenance/maintenance.html:/usr/share/nginx/html/maintenance.html:ro
+      - ./maintenance/index.html:/usr/share/nginx/html/index.html:ro
+    restart: unless-stopped
+    networks:
+      isolated:
+      edge:
+        aliases: [medicalcare-maintenance-preview]
 networks:
   isolated:
     internal: true

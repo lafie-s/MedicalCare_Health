@@ -1,0 +1,31 @@
+# HTTP server context on the public ingress. Render MAINTENANCE_GATE_KEY from a
+# secret at deploy time; never commit the rendered configuration.
+# The ingress must reach health-api only on a private Docker network.
+# Do not include this in the public Health preview server.
+location = /_medicalcare_maintenance_check {
+    internal;
+    proxy_pass http://health-api:4310/internal/maintenance-check;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+    proxy_set_header X-Maintenance-Key "${MAINTENANCE_GATE_KEY}";
+    proxy_set_header X-Maintenance-IP $remote_addr;
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 3s;
+}
+location = /_medicalcare_maintenance.html {
+    internal;
+    alias /etc/nginx/maintenance/maintenance.html;
+    add_header Cache-Control "no-store" always;
+    add_header Retry-After "60" always;
+    add_header X-Content-Type-Options nosniff always;
+}
+# Add these three directives to EVERY MedicalCare business location, including
+# exact /MedicalCare, /MedicalCare/, chat-api, chat-socket, static files and staff.
+# Keep current proxy settings. Do not add to /MedicalCareHealth.
+# auth_request /_medicalcare_maintenance_check;
+# error_page 401 403 500 502 503 504 =503 /_medicalcare_maintenance.html;
+# add_header Cache-Control "no-store" always;
+# Existing rewrite-phase `return 302` locations execute before auth_request:
+# replace them with gated proxy locations, do not keep those returns.
+# At maintenance start, drain old WebSockets: set worker_shutdown_timeout 5s
+# in nginx main context and reload. This is not triggered by the policy API.

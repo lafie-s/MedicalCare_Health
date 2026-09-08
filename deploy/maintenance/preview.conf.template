@@ -1,0 +1,34 @@
+server {
+  listen 8080;
+  server_name _;
+  # Only the verified edge proxy may supply the visitor address. No published ports.
+  set_real_ip_from ${TRUSTED_INGRESS_IP};
+  real_ip_header X-MC-Client-IP;
+  real_ip_recursive off;
+  root /usr/share/nginx/html;
+  add_header Cache-Control "no-store" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Visitor-IP $remote_addr always;
+  error_page 401 403 500 502 503 504 =503 /maintenance.html;
+  location = /_maintenance_check {
+    internal;
+    proxy_pass http://health-api:4310/internal/maintenance-check;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+    proxy_set_header X-Maintenance-Key "${MAINTENANCE_GATE_KEY}";
+    proxy_set_header X-Maintenance-IP $remote_addr;
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 3s;
+  }
+  location = /maintenance.html {
+    internal;
+    add_header Cache-Control "no-store" always;
+    add_header Retry-After "60" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Visitor-IP $remote_addr always;
+  }
+  location / {
+    auth_request /_maintenance_check;
+    try_files /index.html =404;
+  }
+}

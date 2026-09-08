@@ -1,10 +1,12 @@
 import Fastify, { LogController } from "fastify";
 import { registerAuthRoutes, type AuthDependencies } from "./auth-routes.js";
 
+import { registerMaintenanceGate } from "./maintenance-access-routes.js";
+
 export function buildApp(auth?: AuthDependencies) {
   const app = Fastify({
     bodyLimit: 16_384,
-    logger: { level: "info", redact: ["req.headers.authorization", "req.headers.cookie", "res.headers.set-cookie"] },
+    logger: { level: "info", redact: ["req.headers.authorization", "req.headers.x-maintenance-key", "req.headers.cookie", "res.headers.set-cookie"] },
     logController: new LogController({ disableRequestLogging: true }),
   });
 
@@ -27,6 +29,7 @@ export function buildApp(auth?: AuthDependencies) {
       return reply.code(ready ? 200 : 503).send({ status: ready ? "ready" : "unavailable" });
     } catch { return reply.code(503).send({ status: "unavailable" }); }
   });
+  if (auth?.services && auth.maintenanceGate) registerMaintenanceGate(app, auth.services, auth.maintenanceGate);
   if (auth) app.register(registerAuthRoutes, auth);
   return app;
 }

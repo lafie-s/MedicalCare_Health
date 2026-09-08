@@ -56,3 +56,6 @@ MedicalCareWeb PostgreSQL 业务备份使用独立命令 backup:medicalcare；�
 腾讯云隔离演示：[打开工作台](http://124.221.179.162/MedicalCareHealth)。点击进入演示工作台，仅含示例数据，重启重置。部署模板与说明见 [部署文档](deploy/README.md)。
 
 服务条目新增“网站版本”：查看批准版本、更新与回退、查询任务和执行结果。公开站仅模拟示例版本；真实 Docker 发布需按 [网站版本更新说明](docs/website-releases.md)配置。
+
+
+网站维护入口与 IP/网段白名单、503 维护页和正式接入说明见 [维护访问控制](docs/maintenance-access.md)。公开平台仅控制隔离访客演示。

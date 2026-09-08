@@ -24,6 +24,12 @@ if (config.auth) {
     if (!auth.services.get(release.serviceId)) throw new Error("Release service must be registered before enabling releases");
     auth.releaseManager = new ReleaseManager(release.serviceId, release.releases, "docker", auth.services.releases, dockerReleaseExecutor(release.deploymentDirectory, release.releases));
   }
+  if (process.env.MAINTENANCE_GATE_SERVICE_ID || process.env.MAINTENANCE_GATE_KEY) {
+    const serviceId = process.env.MAINTENANCE_GATE_SERVICE_ID;
+    const token = process.env.MAINTENANCE_GATE_KEY;
+    if (!serviceId || !token || token.length < 32 || !auth.services.get(serviceId)) throw new Error("Maintenance gate configuration is incomplete");
+    auth.maintenanceGate = { serviceId, token, mode: "nginx" };
+  }
   auth.probeRunner = new ProbeRunner(auth.services, auth.policy);
 }
 const app = buildApp(auth);

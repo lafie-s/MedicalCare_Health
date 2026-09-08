@@ -71,3 +71,11 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 ## F07b 首页入口修复（2026-09-08）
 
 首页主按钮 → 目标服务选择 → 版本面板、关闭后重开、退出后重新进入演示均已在腾讯云验证。修正服务区与审计区重复 React key 导致的重渲染重复内容；重复交互后服务目录仍只有一个。503 注入显示重试并可恢复，空目录提示明确，只读角色可查看但无更新按钮。桌面首页入口在首屏，390px 服务选择无横向溢出。截图 output/playwright/entry-home.png、entry-mobile.png、entry-release-final.png。check:web 通过，严格 UI 审计 0 问题；designmd lint 0 错误，9 条既有令牌引用警告。未执行真实网站发布。
+
+## F07c IP 白名单维护访问（2026-09-08）
+
+66 项自动测试、后端构建及启动检查通过；包含 IPv4/IPv6/CIDR 边界、映射地址、无效地址和 /0 拒绝、鉴权秘密、伪造 XFF 无效、角色/环境/Origin、原子审计、持久化、重复请求、冲突、故障关闭以及窗口开始/到期/取消。前端构建、类型和令牌检查通过；严格 UI 审计 0 问题，designmd lint 0 错误、9 条既有引用警告。
+
+腾讯云独立访客入口已验证：非白名单返回 503 维护 HTML、Retry-After 60、no-store；当前来源单 IP 加入白名单后返回 200；篡改 XFF/X-Real-IP/X-MC-Client-IP 的模拟接口、连接路径、静态资源请求仍被拒绝；关闭后恢复 200。主 MedicalCare/en 仍为 200。演示验证结束恢复 off，清空测试来源 IP。
+
+浏览器：主页入口、首错聚焦、保存确认、草稿放弃、503 清除旧数据和重试、409 保留草稿、只读无保存、原生模式 select 展开、1440/390px 无横向溢出通过。截图 output/playwright/access-desktop-final.png、access-mobile-final.png、maintenance-page-desktop.png、maintenance-page-mobile.png。正式业务路径与既有 WebSocket 排空未接入，不能视为生产维护封锁验收。
