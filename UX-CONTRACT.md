@@ -46,3 +46,6 @@ AuditPanel 复用 Button、Notice、原生 Select/Listbox 和 alert-center 列�
 NEXT_PUBLIC_PREVIEW 仅构建隔离演示界面：LoginForm 提供固定演示身份入口，不采集真实凭据。生产登录不变。NEXT_PUBLIC_BASE_PATH 统一 Next 路由和同源 API 子路径。
 
 ReleaseDialog 复用 Dialog、Button、Notice、原生 Select/Listbox 和维护表单输入。批准版本由服务端提供；管理员确认原因/备份后提交。每 5 秒查询状态，确认表单期间暂停刷新，首错聚焦，关闭未提交草稿询问放弃。已提交任务不随弹窗关闭取消。权限失效清除，失败隐藏旧部署状态；状态未知禁用新任务，仅提供显式停止确认后的核对入口。
+
+
+网站版本更新从首页主按钮进入服务选择，再进入版本面板。目录加载、失败重试、空数据明确反馈，角色权限沿用服务端授权。

@@ -198,3 +198,6 @@ F09b 按 MedicalCareWeb 实际 PostgreSQL 部署实现 backup:medicalcare 本地
 F09c 新增 Docker 多阶段构建、正式 Compose 模板及独立隔离演示 Compose。腾讯云仅 HTTP 入口时采用 preview-server 内存样例、公开演示身份、无 ProbeRunner 和 internal 后端网络，生产 server.ts 鉴权不变。Next basePath 与 API 请求同步，Nginx 映射 Cookie Path。生产配置仍需 HTTPS 与真实授权。
 
 F07b 网站版本更新采用批准目录、不可变镜像、管理员确认、幂等后台任务和单服务互斥锁。执行器固定切换 MedicalCareWeb 网站/chat 镜像并核对健康，回退限最近成功任务的原版本；不自动执行数据库迁移。发布结果不确定时锁定并人工确认执行停止后核对。审计与任务同事务，重启不重试。接口与正式接入边界见 docs/website-releases.md。公开演示只修改内存版本。
+
+
+网站版本入口修正：首页标题区增加网站版本更新主按钮，先选择当前授权环境服务，再复用既有版本面板。服务选择复用目录请求，具备加载、错误重试、空目录状态；选择期间暂停后台刷新，角色限制仍由版本 API 执行。

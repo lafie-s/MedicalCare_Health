@@ -67,3 +67,7 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 ## F07b 网站版本更新验证
 
 腾讯云隔离演示：版本选择、批准说明、二次确认、必填首错、执行中及成功记录、回退后当前版本恢复、刷新保留历史通过。注入 503 隐藏旧状态，重试恢复；只读身份无执行按钮；未提交草稿 Escape 需放弃确认。原生 select 展开、1440×960 与 390×844 弹窗检查通过。截图 output/playwright/release-confirm.png、release-history.png、release-mobile.png、release-select-open.png。当前真实发布执行器尚未验收。
+
+## F07b 首页入口修复（2026-09-08）
+
+首页主按钮 → 目标服务选择 → 版本面板、关闭后重开、退出后重新进入演示均已在腾讯云验证。修正服务区与审计区重复 React key 导致的重渲染重复内容；重复交互后服务目录仍只有一个。503 注入显示重试并可恢复，空目录提示明确，只读角色可查看但无更新按钮。桌面首页入口在首屏，390px 服务选择无横向溢出。截图 output/playwright/entry-home.png、entry-mobile.png、entry-release-final.png。check:web 通过，严格 UI 审计 0 问题；designmd lint 0 错误，9 条既有令牌引用警告。未执行真实网站发布。
