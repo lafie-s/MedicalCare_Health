@@ -120,3 +120,9 @@ F06a 提交 `8952c1a` 已成功推送。
 ## 业务存储与备份范围纠正（2026-09-08）
 
 响应用户指出的数据库差异，只读检查 MedicalCareWeb Prisma schema、包版本和部署 Compose，确认仓库声明 PostgreSQL 17、Prisma 6.12.0、Redis 7.4 AOF。F09a 提交 2fd89e5 已推送，但仅覆盖本平台 SQLite。已修正技术文档、备份手册及计划，明确业务备份未实现。未访问数据库、读取真实凭据或改动 MedicalCareWeb。本次仅文档，验证为源码交叉核对和 git diff --check。
+
+## F09b PostgreSQL 业务备份命令（2026-09-08）
+
+范围纠正提交 7c1837d 已补推成功。只读核实 PostgreSQL 部署固定目标及 Redis presence 用途；实现 Docker pg_dump custom 导出、pg_restore --list 归档检查、SHA-256 清单、超时及不覆盖保护。没有访问真实数据库。
+
+验证：npm run check 57 项测试、类型、构建、启动 smoke 通过。新增测试使用模拟 runner，验证二进制传输、固定参数及失败不发布清单；不能替代真实 PostgreSQL 恢复。当前机器无 Docker/PG 客户端，真实导出恢复待授权环境。文档明确 Redis 重建与 AOF 方案边界。

@@ -123,3 +123,5 @@ F06b 提交 58d2149 已补推成功；F07a 维护窗口记录已验证，完整 
 ### 备份范围修正（2026-09-08）
 
 F09a 仅为 MedicalCare_Health 自身 SQLite 状态库恢复演练。MedicalCareWeb 使用 PostgreSQL 17、Prisma 6.12.0 和 Redis 7.4 AOF（源码声明，实际部署待核实），其业务备份仍未实现。下一步优先核实业务备份接入条件并制定 PostgreSQL/Redis 备份与隔离恢复方案，原部署配置工作随后衔接。
+
+F09b（2026-09-08）：已实现部署机 PostgreSQL 固定目标导出命令及业务备份方案；57 项自动测试通过。Docker/PG 客户端本机缺失，真实导出与恢复未验收，Redis 执行器未实现。下一步在授权隔离环境执行 PostgreSQL 恢复演练并核实 Redis 实际用途；文档提交 7c1837d 已补推成功。

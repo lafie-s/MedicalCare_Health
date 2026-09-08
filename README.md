@@ -50,3 +50,5 @@ npm run dev
 管理员审计查询接口已实现，支持授权环境、操作类型和时间范围检索，管理员查询页面已接入。详见 [环境操作审计查询](docs/audit-query.md)。
 
 已提供单实例数据库备份与新目录恢复命令，详见 [备份与恢复手册](docs/backup-recovery.md)。先构建后执行 npm run db:snapshot，正式切换需按手册停机核对。
+
+MedicalCareWeb PostgreSQL 业务备份使用独立命令 backup:medicalcare；与本平台 SQLite db:snapshot 区分。详见 [业务备份与恢复接入](docs/medicalcare-business-backup.md)，真实恢复演练尚未验收。
