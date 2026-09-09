@@ -1,3 +1,4 @@
+import { registerFailureRoutes } from "./failure-routes.js";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -125,6 +126,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
   if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
   if (deps.services) await registerMaintenanceRoutes(app, deps.services, authorize);
   if (deps.services) await registerAuditRoutes(app, deps.services, authorize);
+  if (deps.services) await registerFailureRoutes(app, deps.services, authorize);
   if (deps.services) await registerAccessRoutes(app, deps.services, authorize, deps.maintenanceGate);
   if (deps.services) await registerReleaseRoutes(app, deps.services, authorize, deps.releaseManager);
   app.get("/api/v1/environments", async (request, reply) => {

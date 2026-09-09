@@ -6,8 +6,10 @@ import { createHash, randomUUID } from "node:crypto";
 import type { AccessPolicy, ProbeTarget } from "./access-policy.js";
 import type { Service, ServiceStore } from "./service-store.js";
 
+import { safeDiagnostic } from "./failure-log-store.js";
+
 export type ProbeOutcome = "success" | "http_error" | "connection_error" | "timeout" | "interrupted";
-export interface ProbeResult { outcome: ProbeOutcome; httpStatus: number | null; latencyMs: number | null }
+export interface ProbeResult { diagnosticCode?: string; outcome: ProbeOutcome; httpStatus: number | null; latencyMs: number | null }
 export const targetFingerprint = (target: ProbeTarget) => createHash("sha256").update(`${target.url}\n${target.address}`).digest("hex");
 
 // The target is deployment-approved. Pin its address without replacing the Host header or TLS name.
@@ -29,7 +31,7 @@ export function probeTarget(target: ProbeTarget, timeoutMs = 3000): Promise<Prob
       // Do not follow redirects, retain response bodies, or download unbounded content.
       response.destroy();
     });
-    request.on("error", () => finish({ outcome: "connection_error", httpStatus: null, latencyMs: null }));
+    request.on("error", (error: NodeJS.ErrnoException) => finish({ outcome: "connection_error", httpStatus: null, latencyMs: null, diagnosticCode: safeDiagnostic(error.code) }));
     request.end();
   });
 }

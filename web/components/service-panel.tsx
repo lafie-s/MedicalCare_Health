@@ -10,6 +10,7 @@ import { AlertDialog } from "./alert-dialog";
 import { AlertCenter } from "./alert-center";
 import { MaintenanceDialog } from "./maintenance-dialog";
 import { MaintenanceAccessDialog } from "./maintenance-access-dialog";
+import { FailureDialog } from "./failure-dialog";
 import { ReleaseDialog } from "./release-dialog";
 import { currentHealth, healthReasons as reasons } from "../../src/health-summary";
 
@@ -24,6 +25,7 @@ export function ServicePanel({ environmentId, role, launcher, onCloseLauncher, o
   const [edit, setEdit] = useState<Service | "new" | null>(null);
   const [alerts, setAlerts] = useState<Service | null>(null);
   const [maintenance, setMaintenance] = useState<Service | null>(null);
+  const [failure, setFailure] = useState<Service | null>(null);
   const [access, setAccess] = useState<Service | null>(null);
   const [release, setRelease] = useState<Service | null>(null);
   const [trend, setTrend] = useState<Service | null>(null);
@@ -33,7 +35,7 @@ export function ServicePanel({ environmentId, role, launcher, onCloseLauncher, o
   const [now, setNow] = useState(Date.now());
   const probeKeys = useRef(new Map<string, string>());
   const probePending = useRef(false);
-  const modalOpen = useRef(false); modalOpen.current = Boolean(edit || toggle || trend || alerts || maintenance || release || launcher || access);
+  const modalOpen = useRef(false); modalOpen.current = Boolean(edit || toggle || trend || alerts || maintenance || release || launcher || access || failure);
   const active = useRef<AbortController | null>(null);
   const auth = useRef(onUnauthorized); auth.current = onUnauthorized;
   const load = useCallback(async (background = false) => {
@@ -72,10 +74,11 @@ export function ServicePanel({ environmentId, role, launcher, onCloseLauncher, o
     <div className="service-content">{message && <Notice>{message}</Notice>}{!toggle && error && <Notice error>{error}</Notice>}{loading ? <Notice>正在读取服务配置…</Notice> : data && <>
       <HealthOverview items={data.items} now={now} asOf={data.asOf} />
       {role === "admin" && !data.targets.length && <Notice>当前环境没有获准探测的目标，请先由部署管理员配置目标白名单。</Notice>}
-      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id} id={`service-${service.id}`} tabIndex={-1}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div>{service.maintenanceWindow && now >= service.maintenanceWindow.startsAt && now < service.maintenanceWindow.endsAt && <p className="badge">维护中（记录）· 采集与告警继续</p>}<ProbeInfo service={service} now={now} /><div className="inline-actions service-actions"><Button onClick={() => setAccess(service)}>网站维护 {service.name}</Button><Button onClick={() => setRelease(service)}>网站版本 {service.name}</Button><Button onClick={() => setMaintenance(service)}>维护窗口 {service.name}</Button><Button onClick={() => setAlerts(service)}>查看告警 {service.name}</Button><Button onClick={() => setTrend(service)}>查看趋势 {service.name}</Button>{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
+      {data.items.length === 0 ? <div className="empty-services"><h3>尚未登记服务</h3><p>登记服务并关联获准探测的目标后，即可建立运行监测。</p></div> : <ul className="service-list">{data.items.map((service) => <li key={service.id} id={`service-${service.id}`} tabIndex={-1}><div className="service-row"><div><h3>{service.name}</h3><p>{service.owner} · 每 {service.intervalSeconds} 秒采集</p><p>目标：{data.targets.find((target) => target.id === service.targetId)?.name ?? "目标授权已撤销"}</p></div><span className="badge">{service.enabled ? "已启用" : "已停用"}</span></div>{service.maintenanceWindow && now >= service.maintenanceWindow.startsAt && now < service.maintenanceWindow.endsAt && <p className="badge">维护中（记录）· 采集与告警继续</p>}<ProbeInfo service={service} now={now} /><div className="inline-actions service-actions"><Button onClick={() => setFailure(service)}>故障日志 {service.name}</Button><Button onClick={() => setAccess(service)}>网站维护 {service.name}</Button><Button onClick={() => setRelease(service)}>网站版本 {service.name}</Button><Button onClick={() => setMaintenance(service)}>维护窗口 {service.name}</Button><Button onClick={() => setAlerts(service)}>查看告警 {service.name}</Button><Button onClick={() => setTrend(service)}>查看趋势 {service.name}</Button>{role !== "viewer" && <Button busy={probing === service.id} disabled={!data.probingAvailable || !service.enabled || Boolean(probing) || !data.targets.some((target) => target.id === service.targetId)} onClick={() => void probe(service)}>立即探测 {service.name}</Button>}{role === "admin" && <><Button onClick={() => { setMessage(""); setEdit(service); }}>编辑 {service.name}</Button><Button onClick={() => { setError(""); setToggle(service); }}>{service.enabled ? "停用" : "启用"} {service.name}</Button></>}</div></li>)}</ul>}
       <p className="muted service-count">共 {data.items.length} 个服务 · 每环境上限 {data.limit} 个</p>
     </>}</div>
     {launcher && <Dialog title={`${launcher === "release" ? "网站版本更新" : "网站维护"} · 选择服务`} onCancel={onCloseLauncher}><p>请选择当前授权环境中的目标服务，管理网站版本或维护访问。</p>{loading ? <Notice>正在读取服务配置…</Notice> : error ? <><Notice error>{error}</Notice><Button onClick={() => void load()}>重试加载服务</Button></> : !data?.items.length ? <Notice>当前环境尚未登记服务，请先登记服务并配置批准版本目录。</Notice> : <ul className="service-list">{data.items.map((service) => <li key={service.id}><h3>{service.name}</h3><p>{service.owner}</p><Button className="primary" onClick={() => { onCloseLauncher(); if (launcher === "release") setRelease(service); else setAccess(service); }}>{launcher === "release" ? "管理网站版本" : "配置网站维护"} {service.name}</Button></li>)}</ul>}<div className="dialog-actions"><Button onClick={onCloseLauncher}>关闭服务选择</Button></div></Dialog>}
+    {failure && <FailureDialog serviceId={failure.id} serviceName={failure.name} onClose={() => setFailure(null)} onUnauthorized={() => auth.current()} />}
     {access && <MaintenanceAccessDialog serviceId={access.id} serviceName={access.name} role={role} onClose={() => { setAccess(null); void load(true); }} onUnauthorized={() => auth.current()} />}
     {release && <ReleaseDialog serviceId={release.id} serviceName={release.name} role={role} onClose={() => { setRelease(null); void load(true); }} onUnauthorized={() => auth.current()} />}
     {maintenance && <MaintenanceDialog service={maintenance} role={role} onClose={() => { setMaintenance(null); void load(true); }} onUnauthorized={() => auth.current()} />}
@@ -83,7 +86,7 @@ export function ServicePanel({ environmentId, role, launcher, onCloseLauncher, o
     {trend && <TrendDialog service={trend} onClose={() => setTrend(null)} onUnauthorized={() => auth.current()} />}
     {edit && data && <ServiceForm key={edit === "new" ? "new" : edit.id} service={edit === "new" ? null : edit} targets={data.targets} environmentId={environmentId} onClose={() => setEdit(null)} onUnauthorized={() => auth.current()} onSaved={() => { setEdit(null); setMessage("服务配置已保存。"); void load(); }} />}
     {toggle && <Dialog title={`${toggle.enabled ? "停用" : "启用"} ${toggle.name}`} onCancel={() => { if (!busy) setToggle(null); }}><p>{toggle.enabled ? "停用后不再采集该服务的运行指标，已有记录会保留。" : "启用后将按配置恢复采集。"}</p>{error && <Notice error>{error}</Notice>}<div className="dialog-actions"><Button autoFocus disabled={busy} onClick={() => setToggle(null)}>取消</Button><Button className="primary" busy={busy} onClick={() => void changeState()}>{toggle.enabled ? "确认停用" : "确认启用"}</Button></div></Dialog>}
-  </section><AlertCenter environmentId={environmentId} revision={0} paused={Boolean(edit || toggle || trend || alerts || maintenance || release || launcher || access)} onUnauthorized={() => auth.current()} onOpen={(id) => { const service = data?.items.find((item) => item.id === id); if (service) setAlerts(service); else { setError("服务目录暂不可用，请刷新服务后重试"); } }} /></>;
+  </section><AlertCenter environmentId={environmentId} revision={0} paused={Boolean(edit || toggle || trend || alerts || maintenance || release || launcher || access || failure)} onUnauthorized={() => auth.current()} onOpen={(id) => { const service = data?.items.find((item) => item.id === id); if (service) setAlerts(service); else { setError("服务目录暂不可用，请刷新服务后重试"); } }} /></>;
 }
 
 function ProbeInfo({ service, now }: { service: Service; now: number }) {

@@ -1,3 +1,4 @@
+import { FailureLogStore } from "./failure-log-store.js";
 import { DatabaseSync } from "node:sqlite";
 import type { ProbeResult, ProbeOutcome } from "./probe.js";
 import { AlertStore } from "./alert-store.js";
@@ -18,6 +19,7 @@ export class ServiceStore {
   readonly maintenance: MaintenanceStore;
   readonly auditLog: AuditStore;
   readonly releases: ReleaseStore;
+  readonly failureLogs: FailureLogStore;
   readonly maintenanceAccess: MaintenanceAccessStore;
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -32,6 +34,7 @@ export class ServiceStore {
     this.auditLog = new AuditStore(this.db);
     this.releases = new ReleaseStore(this.db);
     this.maintenanceAccess = new MaintenanceAccessStore(this.db);
+    this.failureLogs = new FailureLogStore(this.db);
   }
   private map(row: Record<string, unknown>): Service {
     return { id: String(row.id), environmentId: String(row.environment_id), name: String(row.name), owner: String(row.owner), targetId: String(row.target_id), intervalSeconds: Number(row.interval_seconds), enabled: Boolean(row.enabled), version: Number(row.version), createdAt: Number(row.created_at) };
@@ -85,6 +88,7 @@ export class ServiceStore {
         this.db.prepare("UPDATE probe_runs SET outcome = 'interrupted', finished_at = ? WHERE id = ?").run(now, String(expired.id));
         this.audit("system:collector", `probe.finished:${String(expired.id)}:interrupted`, requestId);
         this.alerts.sample(service, this.getProbe(String(expired.id))!, now);
+        this.failureLogs.record(this.getProbe(String(expired.id))!, { outcome: "interrupted", httpStatus: null, latencyMs: null });
       }
       if (!this.probeDue(service, now) || this.db.prepare("SELECT id FROM probe_runs WHERE service_id = ? AND outcome = 'running'").get(service.id)) return false;
       const inserted = this.db.prepare("INSERT OR IGNORE INTO probe_runs VALUES (?, ?, ?, ?, ?, NULL, 'running', NULL, NULL, ?)").run(id, service.id, service.version, fingerprint, now, actor);
@@ -98,7 +102,7 @@ export class ServiceStore {
       const changed = this.db.prepare("UPDATE probe_runs SET outcome = ?, http_status = ?, latency_ms = ?, finished_at = ? WHERE id = ? AND outcome = 'running'").run(result.outcome, result.httpStatus, result.latencyMs, now, id);
       if (changed.changes) {
         this.audit("system:collector", `probe.finished:${id}:${result.outcome}`, id);
-        const sample = this.getProbe(id)!; const service = this.get(sample.serviceId);
+        const sample = this.getProbe(id)!; this.failureLogs.record(sample, result); const service = this.get(sample.serviceId);
         if (service) this.alerts.sample(service, sample, now);
       }
     });
@@ -107,7 +111,7 @@ export class ServiceStore {
     const row = this.db.prepare("SELECT COUNT(*) AS samples, COALESCE(SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END), 0) AS successful FROM probe_runs WHERE service_id = ? AND service_version = ? AND target_fingerprint = ? AND started_at > ? AND started_at <= ? AND outcome IN ('success', 'http_error', 'timeout', 'connection_error')").get(service.id, service.version, fingerprint, now - 300_000, now)!;
     return { samples: Number(row.samples), successful: Number(row.successful) };
   }
-  pruneProbes(now = Date.now()) { this.db.prepare("DELETE FROM probe_runs WHERE outcome != 'running' AND started_at < ?").run(now - 86_400_000); }
+  pruneProbes(now = Date.now()) { this.failureLogs.prune(now); this.db.prepare("DELETE FROM probe_runs WHERE outcome != 'running' AND started_at < ?").run(now - 86_400_000); }
   trendBuckets(service: Service, fingerprint: string, start: number, end: number, bucketMs: number) {
     // Integer millisecond timestamps: each bucket is (start, end], matching overview windows.
     return this.db.prepare(`SELECT CAST((started_at - ? - 1) / ? AS INTEGER) AS bucket,
