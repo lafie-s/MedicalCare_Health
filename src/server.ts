@@ -11,6 +11,9 @@ import { ProbeRunner } from "./probe.js";
 import { ReleaseManager, releaseConfigSchema } from "./release-manager.js";
 import { dockerReleaseExecutor } from "./release-docker.js";
 
+import { RecoveryManager, recoveryConfigSchema } from "./recovery-manager.js";
+import { dockerRecoveryExecutor } from "./recovery-docker.js";
+
 const config = loadConfig();
 let auth: AuthDependencies | undefined;
 if (config.auth) {
@@ -30,13 +33,20 @@ if (config.auth) {
     if (!serviceId || !token || token.length < 32 || !auth.services.get(serviceId)) throw new Error("Maintenance gate configuration is incomplete");
     auth.maintenanceGate = { serviceId, token, mode: "nginx" };
   }
-  auth.probeRunner = new ProbeRunner(auth.services, auth.policy);
+  if (process.env.RECOVERY_CONFIG_PATH) {
+    const recovery = recoveryConfigSchema.parse(JSON.parse(await readFile(process.env.RECOVERY_CONFIG_PATH, "utf8")));
+    if (!auth.services.get(recovery.serviceId)) throw new Error("Recovery service must be registered");
+    auth.recoveryManager = new RecoveryManager(recovery.serviceId, "docker", auth.services, auth.policy, dockerRecoveryExecutor(recovery.containers));
+  }
+  const recovery = auth.recoveryManager;
+  auth.probeRunner = new ProbeRunner(auth.services, auth.policy, undefined, (sample) => recovery?.observe(sample));
 }
 const app = buildApp(auth);
 if (auth) {
   app.addHook("onReady", async () => auth.probeRunner?.start(() => app.log.error("Collector configuration or storage unavailable")));
   app.addHook("preClose", async () => auth.probeRunner?.stop());
   app.addHook("preClose", async () => auth.releaseManager?.close());
+  app.addHook("preClose", async () => auth.recoveryManager?.close());
   app.addHook("onClose", async () => { auth.services?.close(); auth.store.close(); });
 }
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

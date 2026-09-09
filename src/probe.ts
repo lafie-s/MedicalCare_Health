@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 import { performance } from "node:perf_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import type { AccessPolicy, ProbeTarget } from "./access-policy.js";
-import type { Service, ServiceStore } from "./service-store.js";
+import type { ProbeRecord, Service, ServiceStore } from "./service-store.js";
 
 import { safeDiagnostic } from "./failure-log-store.js";
 
@@ -43,7 +43,7 @@ export class ProbeRunner {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
   private currentTick: Promise<void> | undefined;
-  constructor(private readonly store: ServiceStore, private readonly policy: () => Promise<AccessPolicy>, private readonly execute = probeTarget) {}
+  constructor(private readonly store: ServiceStore, private readonly policy: () => Promise<AccessPolicy>, private readonly execute = probeTarget, private readonly onResult?: (sample: ProbeRecord) => void) {}
   async run(serviceId: string, id: string, actor: string, requestId: string) {
     const existing = this.store.getProbe(id);
     if (existing) {
@@ -71,7 +71,7 @@ export class ProbeRunner {
         catch { result = { outcome: "interrupted", httpStatus: null, latencyMs: null }; }
         this.store.finishProbe(id, result);
       }
-      return this.store.getProbe(id)!;
+      const completed = this.store.getProbe(id)!; this.onResult?.(completed); return completed;
     } finally { this.active--; }
   }
   async tick() {

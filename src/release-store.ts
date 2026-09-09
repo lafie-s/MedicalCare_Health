@@ -16,6 +16,7 @@ export class ReleaseStore {
   private transaction<T>(action: () => T): T { this.db.exec("BEGIN IMMEDIATE"); try { const result = action(); this.db.exec("COMMIT"); return result; } catch (error) { this.db.exec("ROLLBACK"); throw error; } }
   create(task: ReleaseTask) {
     return this.transaction(() => {
+      if (this.db.prepare("SELECT name FROM sqlite_master WHERE name='recovery_tasks'").get() && this.db.prepare("SELECT 1 FROM recovery_tasks WHERE status IN ('running','unknown') LIMIT 1").get()) throw new ReleaseConflict("自动重启任务尚未结束，请先核对");
       if (this.get(task.id) || this.active(task.serviceId)) throw new ReleaseConflict("已有更新任务或请求标识冲突");
       this.db.prepare("INSERT INTO release_tasks VALUES (?,?,?,?)").run(task.id, task.serviceId, task.status, JSON.stringify(task));
       this.db.prepare("INSERT INTO audit_events(actor,action,request_id,created_at) VALUES (?,?,?,?)").run(task.actor, `release.started:${task.serviceId}`, task.id, Date.now());

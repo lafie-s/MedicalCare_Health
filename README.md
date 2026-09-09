@@ -59,3 +59,6 @@ MedicalCareWeb PostgreSQL 业务备份使用独立命令 backup:medicalcare；�
 
 
 网站维护入口与 IP/网段白名单、503 维护页和正式接入说明见 [维护访问控制](docs/maintenance-access.md)。公开平台仅控制隔离访客演示。
+
+
+网站故障日志及受控自动重启说明见 [自动恢复](docs/automatic-recovery.md)。公开腾讯云仅模拟重启；真实执行器需要部署绑定并由管理员启用。

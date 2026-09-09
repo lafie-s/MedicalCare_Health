@@ -10,7 +10,7 @@ function inspect(db: DatabaseSync) {
   const check = db.prepare("PRAGMA integrity_check").all();
   if (check.length !== 1 || check[0]!.integrity_check !== "ok") throw new Error("Database integrity check failed");
   const counts = Object.fromEntries(tables.map((name) => [name, Number(db.prepare(`SELECT COUNT(*) AS count FROM ${name}`).get()!.count)]));
-  for (const table of ["failure_logs", "release_tasks", "maintenance_access", "maintenance_access_changes"]) {
+  for (const table of ["recovery_policy", "recovery_changes", "recovery_tasks", "failure_logs", "release_tasks", "maintenance_access", "maintenance_access_changes"]) {
     if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table)) counts[table] = Number(db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()!.count);
   }
   return counts;

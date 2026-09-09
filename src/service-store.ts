@@ -1,3 +1,4 @@
+import { RecoveryStore } from "./recovery-store.js";
 import { FailureLogStore } from "./failure-log-store.js";
 import { DatabaseSync } from "node:sqlite";
 import type { ProbeResult, ProbeOutcome } from "./probe.js";
@@ -20,6 +21,7 @@ export class ServiceStore {
   readonly auditLog: AuditStore;
   readonly releases: ReleaseStore;
   readonly failureLogs: FailureLogStore;
+  readonly recovery: RecoveryStore;
   readonly maintenanceAccess: MaintenanceAccessStore;
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -35,6 +37,7 @@ export class ServiceStore {
     this.releases = new ReleaseStore(this.db);
     this.maintenanceAccess = new MaintenanceAccessStore(this.db);
     this.failureLogs = new FailureLogStore(this.db);
+    this.recovery = new RecoveryStore(this.db);
   }
   private map(row: Record<string, unknown>): Service {
     return { id: String(row.id), environmentId: String(row.environment_id), name: String(row.name), owner: String(row.owner), targetId: String(row.target_id), intervalSeconds: Number(row.interval_seconds), enabled: Boolean(row.enabled), version: Number(row.version), createdAt: Number(row.created_at) };

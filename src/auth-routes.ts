@@ -1,3 +1,5 @@
+import { registerRecoveryRoutes } from "./recovery-routes.js";
+import type { RecoveryManager } from "./recovery-manager.js";
 import { registerFailureRoutes } from "./failure-routes.js";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
@@ -19,6 +21,7 @@ import { registerReleaseRoutes } from "./release-routes.js";
 import { registerAccessRoutes, type MaintenanceGate } from "./maintenance-access-routes.js";
 
 export interface AuthDependencies {
+  recoveryManager?: RecoveryManager;
   maintenanceGate?: MaintenanceGate;
   identity: IdentityProvider;
   store: SessionStore;
@@ -126,6 +129,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthDepende
   if (deps.services) await registerAlertRoutes(app, deps.services, authorize);
   if (deps.services) await registerMaintenanceRoutes(app, deps.services, authorize);
   if (deps.services) await registerAuditRoutes(app, deps.services, authorize);
+  if (deps.services) await registerRecoveryRoutes(app, deps.services, authorize, deps.recoveryManager);
   if (deps.services) await registerFailureRoutes(app, deps.services, authorize);
   if (deps.services) await registerAccessRoutes(app, deps.services, authorize, deps.maintenanceGate);
   if (deps.services) await registerReleaseRoutes(app, deps.services, authorize, deps.releaseManager);

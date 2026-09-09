@@ -62,7 +62,7 @@ test("maintenance API enforces admin/environment/origin and authenticated ingres
   await app.inject({ method: "POST", url, headers, payload: off }); assert.equal((await gate("198.51.100.1")).statusCode, 204);
   await app.inject({ method: "POST", url, headers, payload: { ...payload, mode: "window", version: 2, idempotencyKey: randomUUID() } });
   assert.equal((await gate("198.51.100.1")).statusCode, 204);
-  const now = Date.now(); const window = store.maintenance.create(randomUUID(), { serviceId: service.id, startsAt: now, endsAt: now + 60000, owner: "ops", reason: "test" }, "ops", "r");
+  const now = Date.now(); const window = store.maintenance.create(randomUUID(), { serviceId: service.id, startsAt: now, endsAt: now + 60000, owner: "ops", reason: "test" }, "ops", "r", now);
   assert.equal(store.maintenance.active(service.id, now - 1), 0); assert.equal(store.maintenance.active(service.id, now), 1); assert.equal(store.maintenance.active(service.id, now + 60000), 0);
   assert.equal((await gate("198.51.100.1")).statusCode, 403);
   store.maintenance.cancel(window.id, "done", "ops", "r"); assert.equal((await gate("198.51.100.1")).statusCode, 204);

@@ -79,3 +79,7 @@ F02 增量验证：生产构建下通过服务登记、必填聚焦、编辑、�
 腾讯云独立访客入口已验证：非白名单返回 503 维护 HTML、Retry-After 60、no-store；当前来源单 IP 加入白名单后返回 200；篡改 XFF/X-Real-IP/X-MC-Client-IP 的模拟接口、连接路径、静态资源请求仍被拒绝；关闭后恢复 200。主 MedicalCare/en 仍为 200。演示验证结束恢复 off，清空测试来源 IP。
 
 浏览器：主页入口、首错聚焦、保存确认、草稿放弃、503 清除旧数据和重试、409 保留草稿、只读无保存、原生模式 select 展开、1440/390px 无横向溢出通过。截图 output/playwright/access-desktop-final.png、access-mobile-final.png、maintenance-page-desktop.png、maintenance-page-mobile.png。正式业务路径与既有 WebSocket 排空未接入，不能视为生产维护封锁验收。
+
+## F06c / F07d 故障及自动恢复验证
+
+2026-09-09：公网故障列表、503 清空/重试与手机显示通过；截图 failure-desktop.png、failure-mobile.png 位于 output/playwright。自动重启完成空记录、启用必填/确认、演示采样 3 次、单次恢复成功、诊断显示、冷却与配额、失败重试、草稿关闭确认、只读控制隐藏。桌面/390px 截图 recovery-sampling.png、recovery-success.png、recovery-mobile-final.png 位于 output/playwright。回归测试 76 项通过；生产容器命令只做注入执行器测试，未执行真实重启。
